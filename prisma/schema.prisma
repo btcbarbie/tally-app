@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Goal {
+  id               String   @id @default(cuid())
+  title            String
+  description      String?
+  targetAmount     Float
+  deadline         DateTime
+  contributionType String   // "EQUAL" | "FLEXIBLE"
+  paymentType      String   // "FULL" | "PARTIAL"
+  joinType         String   // "INVITE_ONLY" | "OPEN_LINK"
+  status           String   @default("ACTIVE") // "ACTIVE" | "TARGET_REACHED" | "DEADLINE_REACHED" | "CLOSED" | "EXTENDED"
+  adminToken       String   @unique
+  shareToken       String   @unique
+  expectedParticipants Int  @default(0)
+  equalAmount      Float?
+  extendedDeadline DateTime?
+  // Payment account details
+  bankName         String?
+  accountName      String?
+  accountNumber    String?
+  paymentNote      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  members     Member[]
+  commitments Commitment[]
+  payments    Payment[]
+  receipts    Receipt[]
+  insights    AiInsight[]
+}
+
+model Member {
+  id          String   @id @default(cuid())
+  goalId      String
+  name        String
+  memberToken String   @unique
+  joinedAt    DateTime @default(now())
+
+  goal        Goal         @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  commitment  Commitment?
+  payments    Payment[]
+  receipts    Receipt[]
+}
+
+model Commitment {
+  id              String   @id @default(cuid())
+  memberId        String   @unique
+  goalId          String
+  committedAmount Float
+  paidAmount      Float    @default(0)
+  outstandingAmount Float
+  status          String   @default("PENDING") // "PENDING" | "PARTIAL" | "PAID"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  goal   Goal   @relation(fields: [goalId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id                 String   @id @default(cuid())
+  memberId           String
+  goalId             String
+  amount             Float
+  date               DateTime @default(now())
+  reference          String?
+  notes              String?
+  verificationStatus String   @default("PENDING_REVIEW") // "PENDING_REVIEW" | "CONFIRMED" | "REJECTED"
+  createdAt          DateTime @default(now())
+
+  member  Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  goal    Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  receipt Receipt?
+}
+
+model Receipt {
+  id               String   @id @default(cuid())
+  paymentId        String?  @unique
+  memberId         String
+  goalId           String
+  fileData         String?  // base64 or file path
+  fileName         String?
+  extractedAmount  Float?
+  extractedPayer   String?
+  extractedRecipient String?
+  extractedRef     String?
+  extractedDate    String?
+  confidence       Float?   // 0-1
+  flags            String?  // JSON array of flag strings
+  aiRawResponse    String?
+  status           String   @default("PENDING_REVIEW") // "PENDING_REVIEW" | "LIKELY_MATCH" | "NEEDS_REVIEW" | "POSSIBLE_DUPLICATE" | "AMOUNT_MISMATCH" | "CONFIRMED" | "REJECTED"
+  createdAt        DateTime @default(now())
+
+  payment Payment? @relation(fields: [paymentId], references: [id])
+  member  Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  goal    Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+}
+
+model AiInsight {
+  id        String   @id @default(cuid())
+  goalId    String
+  type      String   // "PLAN_CHECK" | "FINANCIAL_INSIGHT" | "FORECAST" | "REMINDER" | "CHAT"
+  prompt    String?
+  content   String
+  createdAt DateTime @default(now())
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+}
