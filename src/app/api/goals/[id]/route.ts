@@ -45,6 +45,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Bank name, account name, and account number cannot be empty' }, { status: 400 })
     }
 
+    if (accountNumber !== undefined && !/^\d{10}$/.test(String(accountNumber).trim())) {
+      return NextResponse.json({ error: 'Account number must be exactly 10 digits' }, { status: 400 })
+    }
+
     const updated = await prisma.goal.update({
       where: { id },
       data: {

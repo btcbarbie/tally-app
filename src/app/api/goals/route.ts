@@ -46,6 +46,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payment account details are required' }, { status: 400 })
     }
 
+    if (!/^\d{10}$/.test(String(accountNumber).trim())) {
+      return NextResponse.json({ error: 'Account number must be exactly 10 digits' }, { status: 400 })
+    }
+
     if (!adminName?.trim()) {
       return NextResponse.json({ error: 'Your name is required' }, { status: 400 })
     }

@@ -13,7 +13,6 @@ import {
   ChevronRight,
   Sparkles,
   Link2,
-  Lock,
   Building2,
   CreditCard,
   User,
@@ -82,7 +81,7 @@ export default function CreateGoalPage() {
     if (step === 2) {
       if (!form.bankName.trim()) return 'Please enter the bank name.'
       if (!form.accountName.trim()) return 'Please enter the account holder name.'
-      if (!form.accountNumber.trim()) return 'Please enter the account number.'
+      if (form.accountNumber.length !== 10) return 'Account number must be exactly 10 digits.'
     }
     return null
   }
@@ -388,8 +387,8 @@ export default function CreateGoalPage() {
                   className="form-input"
                   placeholder="0123456789"
                   value={form.accountNumber}
-                  onChange={(e) => update('accountNumber', e.target.value)}
-                  maxLength={20}
+                  onChange={(e) => update('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  maxLength={10}
                   inputMode="numeric"
                 />
               </div>
@@ -415,42 +414,14 @@ export default function CreateGoalPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div className="form-group">
                 <label className="form-label" style={{ marginBottom: '12px' }}>Who can join?</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div className={`option-card ${form.joinType === 'OPEN_LINK' ? 'selected' : ''}`} onClick={() => update('joinType', 'OPEN_LINK')}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--color-forest-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Link2 size={18} color="var(--color-forest)" />
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: '700', marginBottom: '2px' }}>Anyone with the link</div>
-                          <div style={{ fontSize: '13px', color: 'var(--color-muted)' }}>Share the invite link — anyone can join</div>
-                        </div>
-                      </div>
-                      {form.joinType === 'OPEN_LINK' && (
-                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--color-forest)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Check size={13} color="white" />
-                        </div>
-                      )}
+                <div className="option-card selected">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--color-forest-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Link2 size={18} color="var(--color-forest)" />
                     </div>
-                  </div>
-
-                  <div className={`option-card ${form.joinType === 'INVITE_ONLY' ? 'selected' : ''}`} onClick={() => update('joinType', 'INVITE_ONLY')}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Lock size={18} color="var(--color-muted)" />
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: '700', marginBottom: '2px' }}>Invite Only</div>
-                          <div style={{ fontSize: '13px', color: 'var(--color-muted)' }}>Admin adds members manually</div>
-                        </div>
-                      </div>
-                      {form.joinType === 'INVITE_ONLY' && (
-                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--color-forest)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Check size={13} color="white" />
-                        </div>
-                      )}
+                    <div>
+                      <div style={{ fontWeight: '700', marginBottom: '2px' }}>Anyone with the link</div>
+                      <div style={{ fontSize: '13px', color: 'var(--color-muted)' }}>Tally is invite-link only — share your link and anyone with it can join</div>
                     </div>
                   </div>
                 </div>
@@ -487,7 +458,7 @@ export default function CreateGoalPage() {
                     { label: 'Per Person', value: equalAmount ? `₦${equalAmount.toLocaleString()}` : 'Flexible' },
                     { label: 'Contribution', value: form.contributionType === 'EQUAL' ? 'Equal' : 'Flexible' },
                     { label: 'Payments', value: form.paymentType === 'FULL' ? 'Full only' : 'Partial OK' },
-                    { label: 'Join', value: form.joinType === 'OPEN_LINK' ? 'Anyone with link' : 'Invite only' },
+                    { label: 'Join', value: 'Anyone with link' },
                   ].map((item) => (
                     <div key={item.label}>
                       <div style={{ fontSize: '11px', color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.4px', fontWeight: '600', marginBottom: '2px' }}>{item.label}</div>

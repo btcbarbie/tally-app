@@ -55,6 +55,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!goal) return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
     if (goal.adminToken !== adminToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
 
+    const totalAllocated = categories.reduce((sum, c) => sum + Number(c.allocatedAmount), 0)
+    if (totalAllocated > goal.targetAmount) {
+      return NextResponse.json(
+        { error: `Budget categories total ₦${totalAllocated.toLocaleString()}, which is more than the goal's target of ₦${goal.targetAmount.toLocaleString()}` },
+        { status: 400 }
+      )
+    }
+
     await prisma.$transaction([
       prisma.budgetCategory.deleteMany({ where: { goalId: id } }),
       prisma.budgetCategory.createMany({

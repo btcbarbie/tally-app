@@ -375,6 +375,11 @@ export default function GoalOverviewPage() {
 
   const saveBudget = async () => {
     if (!budgetProposal) return
+    const totalAllocated = budgetProposal.reduce((sum, c) => sum + c.allocatedAmount, 0)
+    if (goal && totalAllocated > goal.targetAmount) {
+      setBudgetError(`Budget categories total ${formatCurrency(totalAllocated)}, which is more than the goal's target of ${formatCurrency(goal.targetAmount)}.`)
+      return
+    }
     setBudgetSaving(true)
     setBudgetError('')
     try {
@@ -501,8 +506,12 @@ export default function GoalOverviewPage() {
   }
 
   const savePaymentDetails = async () => {
-    if (!paymentForm.bankName.trim() || !paymentForm.accountName.trim() || !paymentForm.accountNumber.trim()) {
-      setPaymentError('Bank name, account name, and account number are all required.')
+    if (!paymentForm.bankName.trim() || !paymentForm.accountName.trim()) {
+      setPaymentError('Bank name and account name are required.')
+      return
+    }
+    if (paymentForm.accountNumber.length !== 10) {
+      setPaymentError('Account number must be exactly 10 digits.')
       return
     }
     setPaymentSaving(true)
@@ -1070,7 +1079,13 @@ export default function GoalOverviewPage() {
                         </div>
                         <div className="form-group">
                           <label className="form-label">Account Number</label>
-                          <input className="form-input" value={paymentForm.accountNumber} onChange={(e) => setPaymentForm({ ...paymentForm, accountNumber: e.target.value })} />
+                          <input
+                            className="form-input"
+                            value={paymentForm.accountNumber}
+                            onChange={(e) => setPaymentForm({ ...paymentForm, accountNumber: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                            maxLength={10}
+                            inputMode="numeric"
+                          />
                         </div>
                         <div className="form-group">
                           <label className="form-label">Payment Instructions <span className="form-label-optional">(Optional)</span></label>
@@ -1556,8 +1571,9 @@ export default function GoalOverviewPage() {
                     </div>
                   ))}
                 </div>
-                <p style={{ fontSize: '13px', color: 'var(--color-muted)', marginBottom: '16px' }}>
+                <p style={{ fontSize: '13px', color: budgetProposal.reduce((s, c) => s + c.allocatedAmount, 0) > goal.targetAmount ? '#dc2626' : 'var(--color-muted)', fontWeight: budgetProposal.reduce((s, c) => s + c.allocatedAmount, 0) > goal.targetAmount ? '700' : '400', marginBottom: '16px' }}>
                   Total allocated: {formatCurrency(budgetProposal.reduce((s, c) => s + c.allocatedAmount, 0))} · Target: {formatCurrency(goal.targetAmount)}
+                  {budgetProposal.reduce((s, c) => s + c.allocatedAmount, 0) > goal.targetAmount && ' — exceeds target, reduce before saving'}
                 </p>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button className="btn btn-primary" onClick={saveBudget} disabled={budgetSaving}>
