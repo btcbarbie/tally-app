@@ -217,6 +217,7 @@ export default function MemberPage() {
     'Are we on track to reach the goal?',
     'How do I upload my payment receipt?',
     "What's our group's progress so far?",
+    ...(budgetCategories.length > 0 ? ['What can we afford right now?'] : []),
   ]
 
   const sendChat = async () => {

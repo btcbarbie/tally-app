@@ -556,6 +556,7 @@ export default function GoalOverviewPage() {
     "How much are we short?",
     "What happens if 3 people don't pay?",
     "Draft a reminder for unpaid members.",
+    ...(budgetCategories.length > 0 ? ["What can we afford right now?"] : []),
   ]
 
   if (loading) {
