@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { buildGoalFinancialState } from '@/lib/finance'
+import { buildGoalFinancialState, computeCategoryNecessity } from '@/lib/finance'
 import { answerFinancialQuestion } from '@/lib/ai'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -18,6 +18,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         payments: true,
         members: true,
         receipts: { orderBy: { createdAt: 'desc' } },
+        budgetCategories: { orderBy: { priority: 'asc' } },
       },
     })
 
@@ -58,6 +59,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         }
       })
 
+    // Budget categories are group-level (same for admin and every member) —
+    // affordability is computed deterministically here, never left to the AI.
+    const necessity = computeCategoryNecessity(goal.budgetCategories, fs.totalCollected)
+    const budgetCategories = goal.budgetCategories.map((c, i) => ({
+      name: c.name,
+      allocatedAmount: c.allocatedAmount,
+      necessity: necessity[i],
+      reasoning: c.aiReasoning,
+    }))
+
     const answer = await answerFinancialQuestion({
       question,
       financialState: {
@@ -71,6 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
       goalTitle: goal.title,
       contributors,
+      budgetCategories,
       history,
     })
 

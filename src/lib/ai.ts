@@ -287,18 +287,22 @@ export async function answerFinancialQuestion(params: {
   financialState: Record<string, unknown>
   goalTitle: string
   contributors: Array<{ name: string; status: string; paidAmount: number; committedAmount: number; outstandingAmount: number }>
+  budgetCategories?: Array<{ name: string; allocatedAmount: number; necessity: string; reasoning?: string | null }>
   history?: Array<{ role: 'user' | 'assistant'; content: string }>
 }): Promise<string> {
-  const { question, financialState, goalTitle, contributors, history = [] } = params
+  const { question, financialState, goalTitle, contributors, budgetCategories, history = [] } = params
 
   const systemPrompt = `You are an AI financial assistant for Tally, helping a group manage shared financial goals.
-  
+
 You have access to exact financial data provided below — do NOT invent or recalculate any numbers. Use only the data given.
 Always cite specific figures when answering financial questions. Keep answers concise (2-4 sentences max).
 
 Current goal: "${goalTitle}"
 Financial state: ${JSON.stringify(financialState, null, 2)}
-Contributors: ${JSON.stringify(contributors, null, 2)}`
+Contributors: ${JSON.stringify(contributors, null, 2)}
+${budgetCategories && budgetCategories.length > 0 ? `Budget categories (in priority order — earlier ones get funded first from money already collected; "necessity" was computed deterministically from the real collected total, never guessed): ${JSON.stringify(budgetCategories, null, 2)}
+
+When asked "can we afford X" or about spending/budget categories, answer using this budget breakdown — a category marked AFFORDABLE_NOW is fully covered by money already collected; NEEDED_NOT_YET_FUNDED means the group needs to collect more before that category can be paid for.` : ''}`
 
   const messages: Anthropic.MessageParam[] = [
     ...history.map((h) => ({ role: h.role, content: h.content }) as Anthropic.MessageParam),
