@@ -7,7 +7,7 @@ import ConfirmDialog from '../../../ConfirmDialog'
 import {
   Target, Calendar, Users, UploadCloud, RefreshCw, Sparkles,
   CheckCircle, Clock, AlertCircle, Copy, Check, ArrowLeft, Building2, ChevronDown, LogOut,
-  MessageSquare, Send, Wallet, Bell,
+  MessageSquare, Send, Wallet, Bell, X,
 } from 'lucide-react'
 
 interface BudgetCategoryView {
@@ -263,12 +263,23 @@ export default function MemberPage() {
       setGoal(data.goal)
       setFs(data.financialState)
       setMember(data.member)
-      setReminderAlerts(data.reminders ?? [])
+      const dismissed: string[] = typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem(`tally_dismissed_reminders_${goalId}`) ?? '[]')
+        : []
+      setReminderAlerts((data.reminders ?? []).filter((r: ReminderAlert) => !dismissed.includes(r.id)))
     } catch (e) {
       console.error(e)
       setNotFound(true)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const dismissReminder = (id: string) => {
+    setReminderAlerts((prev) => prev.filter((r) => r.id !== id))
+    if (typeof window !== 'undefined') {
+      const dismissed: string[] = JSON.parse(localStorage.getItem(`tally_dismissed_reminders_${goalId}`) ?? '[]')
+      localStorage.setItem(`tally_dismissed_reminders_${goalId}`, JSON.stringify([...dismissed, id]))
     }
   }
 
@@ -392,12 +403,19 @@ export default function MemberPage() {
             {reminderAlerts.map((r) => (
               <div key={r.id} style={{ padding: '14px 16px', background: '#fef9ec', border: '1px solid #fde68a', borderRadius: '10px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                 <Bell size={16} color="var(--color-amber)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-amber)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '4px' }}>
                     Reminder from your group admin
                   </p>
                   <p style={{ fontSize: '14px', color: 'var(--color-charcoal)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{r.message}</p>
                 </div>
+                <button
+                  onClick={() => dismissReminder(r.id)}
+                  title="Dismiss"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted)', padding: '2px', flexShrink: 0 }}
+                >
+                  <X size={16} />
+                </button>
               </div>
             ))}
           </div>
