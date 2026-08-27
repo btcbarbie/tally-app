@@ -42,6 +42,11 @@ export default function JoinPage() {
   const [joinedGoalId, setJoinedGoalId] = useState('')
   const [joinedToken, setJoinedToken] = useState('')
   const [copiedAcct, setCopiedAcct] = useState(false)
+  const [ownAdminToken, setOwnAdminToken] = useState<string | null>(null)
+  const [showRecover, setShowRecover] = useState(false)
+  const [recoverName, setRecoverName] = useState('')
+  const [recovering, setRecovering] = useState(false)
+  const [recoverError, setRecoverError] = useState('')
 
   useEffect(() => {
     const fetchGoal = async () => {
@@ -61,6 +66,12 @@ export default function JoinPage() {
     }
     fetchGoal()
   }, [shareToken])
+
+  useEffect(() => {
+    if (goal && typeof window !== 'undefined') {
+      setOwnAdminToken(localStorage.getItem(`tally_admin_${goal.id}`))
+    }
+  }, [goal])
 
   const handleJoin = async () => {
     if (!name.trim()) { setError('Please enter your name'); return }
@@ -90,6 +101,27 @@ export default function JoinPage() {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to join')
       setJoining(false)
+    }
+  }
+
+  const handleRecover = async () => {
+    if (!recoverName.trim()) { setRecoverError('Enter the name you joined with'); return }
+    setRecovering(true)
+    setRecoverError('')
+    try {
+      const res = await fetch(`/api/goals/${goal!.id}/members?name=${encodeURIComponent(recoverName.trim())}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to recover access')
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`tally_member_${goal!.id}`, data.memberToken)
+        localStorage.setItem(`tally_memberId_${goal!.id}`, data.memberId)
+      }
+
+      router.push(`/goals/${goal!.id}/member?memberToken=${data.memberToken}`)
+    } catch (e: unknown) {
+      setRecoverError(e instanceof Error ? e.message : 'Failed to recover access')
+      setRecovering(false)
     }
   }
 
@@ -144,6 +176,22 @@ export default function JoinPage() {
   }
 
   const contribution = goal.contributionType === 'EQUAL' && goal.equalAmount ? formatCurrency(goal.equalAmount) : null
+
+  /* ── Already the admin of this goal ── */
+  if (ownAdminToken) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div className="card animate-fade-in" style={{ padding: '36px 28px', maxWidth: '420px', width: '100%', textAlign: 'center' }}>
+          <div style={{ fontSize: '40px', marginBottom: '12px' }}>👑</div>
+          <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '8px' }}>You created this goal</h2>
+          <p style={{ color: 'var(--color-muted)', fontSize: '14px', marginBottom: '24px', lineHeight: '1.6' }}>
+            You&apos;re already the admin of &quot;{goal.title}&quot;, so there&apos;s no need to join as a member too. Share this invite link with other people instead.
+          </p>
+          <Link href={`/goals/${goal.id}?adminToken=${ownAdminToken}`} className="btn btn-primary">Go to Admin Dashboard</Link>
+        </div>
+      </div>
+    )
+  }
 
   /* ── Successfully Joined ── */
   if (joined) {
@@ -371,6 +419,43 @@ export default function JoinPage() {
               Joining commits you to the goal. You can pay and upload your receipt at any time.
             </p>
           </div>
+        </div>
+
+        {/* Recover access */}
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          {!showRecover ? (
+            <button
+              onClick={() => setShowRecover(true)}
+              style={{ background: 'none', border: 'none', color: 'var(--color-muted)', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Already joined? Recover your access
+            </button>
+          ) : (
+            <div className="card animate-fade-in" style={{ padding: '20px', textAlign: 'left' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '4px' }}>Recover Your Access</h3>
+              <p style={{ fontSize: '13px', color: 'var(--color-muted)', marginBottom: '14px' }}>
+                Enter the name you originally joined with to get back to your contribution page.
+              </p>
+              {recoverError && (
+                <div style={{ background: '#fee2e2', color: '#dc2626', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '12px' }}>
+                  {recoverError}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  className="form-input"
+                  placeholder="Your name"
+                  value={recoverName}
+                  onChange={(e) => setRecoverName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleRecover()}
+                  style={{ flex: 1 }}
+                />
+                <button className="btn btn-secondary" onClick={handleRecover} disabled={recovering}>
+                  {recovering ? 'Looking...' : 'Find Me'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

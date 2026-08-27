@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { randomUUID } from 'crypto'
 
+// Recover a lost member token by name (member-level access only)
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params
+    const name = req.nextUrl.searchParams.get('name')?.trim()
+    if (!name) return NextResponse.json({ error: 'Name required' }, { status: 400 })
+
+    const members = await prisma.member.findMany({ where: { goalId: id } })
+    const member = members.find((m) => m.name.toLowerCase() === name.toLowerCase())
+
+    if (!member) return NextResponse.json({ error: 'No contribution found under that name' }, { status: 404 })
+
+    return NextResponse.json({ memberToken: member.memberToken, memberId: member.id })
+  } catch (e) {
+    console.error(e)
+    return NextResponse.json({ error: 'Failed to recover access' }, { status: 500 })
+  }
+}
+
 // Add a member to a goal
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

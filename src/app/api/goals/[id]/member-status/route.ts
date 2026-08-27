@@ -46,6 +46,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         equalAmount: goal.equalAmount,
         contributionType: goal.contributionType,
         paymentType: goal.paymentType,
+        // Payment destination — must be included so members know where to send money
+        bankName: goal.bankName ?? null,
+        accountName: goal.accountName ?? null,
+        accountNumber: goal.accountNumber ?? null,
+        paymentNote: goal.paymentNote ?? null,
       },
       financialState: {
         percentFunded: financialState.percentFunded,

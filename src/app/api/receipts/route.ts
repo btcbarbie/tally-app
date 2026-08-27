@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
         paymentId: paymentId ?? null,
         memberId,
         goalId,
-        fileData: imageBase64 ? `data:${mimeType};base64,${imageBase64.slice(0, 100)}...` : null,
+        fileData: imageBase64 ? `data:${mimeType};base64,${imageBase64}` : null,
         fileName: fileName ?? null,
         extractedAmount: extraction.extractedAmount ?? null,
         extractedPayer: extraction.extractedPayer ?? null,

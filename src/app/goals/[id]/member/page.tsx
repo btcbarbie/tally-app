@@ -1,12 +1,26 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Target, Calendar, Users, UploadCloud, RefreshCw, Sparkles,
   CheckCircle, Clock, AlertCircle, Copy, Check, ArrowLeft, Building2, ChevronDown, LogOut,
+  MessageSquare, Send, Wallet,
 } from 'lucide-react'
+
+interface BudgetCategoryView {
+  id: string
+  name: string
+  allocatedAmount: number
+  aiReasoning?: string | null
+  necessity: 'AFFORDABLE_NOW' | 'NEEDED_NOT_YET_FUNDED'
+}
+
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
 
 interface Commitment {
   id: string
@@ -177,6 +191,60 @@ export default function MemberPage() {
   // Interactive Payment Workflow Step (0: Not Started, 1: Show Account Details, 2: Informed Payment Done -> Request Receipt, 3: Receipt Verified -> Pending Status)
   const [paymentStep, setPaymentStep] = useState<number>(0)
 
+  // Group Budget (shared, read-only — same view every member and the admin sees)
+  const [budgetCategories, setBudgetCategories] = useState<BudgetCategoryView[]>([])
+  const [budgetTotalCollected, setBudgetTotalCollected] = useState(0)
+
+  const fetchBudget = async () => {
+    try {
+      const res = await fetch(`/api/goals/${goalId}/budget`)
+      const data = await res.json()
+      setBudgetCategories(data.categories ?? [])
+      setBudgetTotalCollected(data.totalCollected ?? 0)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  // Chat
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+  const chatEndRef = useRef<HTMLDivElement>(null)
+
+  const quickQuestions = [
+    'How much do I still owe?',
+    'Are we on track to reach the goal?',
+    'How do I upload my payment receipt?',
+    "What's our group's progress so far?",
+  ]
+
+  const sendChat = async () => {
+    if (!chatInput.trim() || chatLoading || !memberToken) return
+    const question = chatInput.trim()
+    setChatInput('')
+    const newHistory: ChatMessage[] = [...chatHistory, { role: 'user', content: question }]
+    setChatHistory(newHistory)
+    setChatLoading(true)
+    try {
+      const res = await fetch(`/api/goals/${goalId}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, history: chatHistory, memberToken }),
+      })
+      const data = await res.json()
+      setChatHistory([...newHistory, { role: 'assistant', content: data.answer || "Tally AI couldn't respond right now. Please try again." }])
+    } catch {
+      setChatHistory([...newHistory, { role: 'assistant', content: "Tally AI couldn't process that question right now. Please check your connection and try again." }])
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatHistory])
+
   const fetchStatus = async () => {
     if (!memberToken) { setLoading(false); setNotFound(true); return }
     try {
@@ -196,6 +264,7 @@ export default function MemberPage() {
 
   useEffect(() => {
     fetchStatus()
+    fetchBudget()
     // persist token
     if (urlToken && typeof window !== 'undefined') {
       localStorage.setItem(`tally_member_${goalId}`, urlToken)
@@ -346,6 +415,51 @@ export default function MemberPage() {
           </div>
         </div>
 
+        {/* Group Budget — same shared view every member and the admin sees */}
+        {budgetCategories.length > 0 && (
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <Wallet size={16} color="var(--color-forest)" />
+              <span style={{ fontSize: '14px', fontWeight: '700' }}>Group Budget</span>
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--color-muted)', marginBottom: '12px' }}>
+              What the group's {formatCurrency(budgetTotalCollected)} on ground can cover right now, vs. what's still needed.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {(() => {
+                let running = 0
+                return budgetCategories.map((c) => {
+                  const before = running
+                  running += c.allocatedAmount
+                  const covered = Math.max(0, Math.min(c.allocatedAmount, budgetTotalCollected - before))
+                  const pct = c.allocatedAmount > 0 ? Math.round((covered / c.allocatedAmount) * 100) : 0
+                  const affordable = c.necessity === 'AFFORDABLE_NOW'
+                  return (
+                    <div key={c.id} className="card" style={{ padding: '14px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '10px' }}>
+                        <div>
+                          <div style={{ fontWeight: '700', fontSize: '14px' }}>{c.name}</div>
+                          {c.aiReasoning && <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginTop: '2px' }}>{c.aiReasoning}</div>}
+                        </div>
+                        <span className={`badge ${affordable ? 'badge-green' : 'badge-amber'}`} style={{ whiteSpace: 'nowrap', flexShrink: 0, fontSize: '11px' }}>
+                          {affordable ? '✓ Affordable Now' : 'Not Yet Funded'}
+                        </span>
+                      </div>
+                      <div className="progress-track" style={{ height: '6px', marginBottom: '6px' }}>
+                        <div className={`progress-fill ${!affordable ? 'progress-fill-amber' : ''}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--color-muted)' }}>
+                        <span>{formatCurrency(covered)} of {formatCurrency(c.allocatedAmount)}</span>
+                        <span>{pct}%</span>
+                      </div>
+                    </div>
+                  )
+                })
+              })()}
+            </div>
+          </div>
+        )}
+
         {/* My Contribution Card */}
         <div className="card" style={{ padding: '22px', marginBottom: '20px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -379,6 +493,89 @@ export default function MemberPage() {
           ) : (
             <p style={{ color: 'var(--color-muted)', fontSize: '14px' }}>No commitment record found.</p>
           )}
+        </div>
+
+        {/* Ask Tally AI */}
+        <div style={{ marginBottom: '20px' }}>
+          <p style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+            Quick Questions
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+            {quickQuestions.map((q) => (
+              <button
+                key={q}
+                className="btn btn-ghost btn-sm"
+                style={{ fontSize: '13px', border: '1px solid var(--color-border)' }}
+                onClick={() => setChatInput(q)}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          <div className="card" style={{ overflow: 'hidden' }}>
+            <div
+              style={{
+                padding: '16px',
+                borderBottom: '1px solid var(--color-border)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'linear-gradient(to right, var(--color-forest-subtle), white)',
+              }}
+            >
+              <Sparkles size={16} color="var(--color-forest)" />
+              <span style={{ fontWeight: '700', fontSize: '15px' }}>Tally AI</span>
+              <span style={{ fontSize: '12px', color: 'var(--color-muted)' }}>· Answers grounded in your own contribution</span>
+            </div>
+
+            <div style={{ height: '320px', overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {chatHistory.length === 0 && (
+                <div style={{ textAlign: 'center', color: 'var(--color-muted)', marginTop: '50px' }}>
+                  <MessageSquare size={32} style={{ margin: '0 auto 12px', display: 'block', opacity: 0.3 }} />
+                  <p style={{ fontSize: '15px', fontWeight: '600' }}>Ask anything about your contribution</p>
+                  <p style={{ fontSize: '13px' }}>e.g. &quot;How much do I still owe?&quot;</p>
+                </div>
+              )}
+              {chatHistory.map((msg, i) => (
+                <div key={i} className={msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'} style={{ maxWidth: '80%', alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                  {msg.role === 'assistant' && (
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-amber)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Sparkles size={10} /> Tally AI
+                    </div>
+                  )}
+                  <p style={{ fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{msg.content}</p>
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="chat-bubble-ai" style={{ maxWidth: '80%' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-amber)', marginBottom: '4px' }}>
+                    <Sparkles size={10} style={{ display: 'inline', marginRight: '4px' }} /> Tally AI
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center', height: '20px' }}>
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-forest)', animation: `pulse-ring 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            <div style={{ padding: '16px', borderTop: '1px solid var(--color-border)', display: 'flex', gap: '10px' }}>
+              <input
+                className="form-input"
+                style={{ flex: 1 }}
+                placeholder='Ask about your contribution... e.g. "Am I fully paid?"'
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendChat()}
+              />
+              <button className="btn btn-primary" onClick={sendChat} disabled={chatLoading || !chatInput.trim()}>
+                <Send size={16} />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Step-by-Step Interactive Payment & Receipt Flow */}

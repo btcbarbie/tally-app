@@ -9,46 +9,79 @@ const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-4-5'
 // ─── Plan Check ───────────────────────────────────────────────────────────────
 export async function runPlanCheck(params: {
   title: string
+  description?: string | null
   targetAmount: number
   participants: number
   contributionType: string
+  paymentType: string
   equalAmount?: number
   projectedTotal: number
   shortfall: number
-}): Promise<{ message: string; suggestion?: string; suggestedAmount?: number }> {
-  const { title, targetAmount, participants, contributionType, equalAmount, projectedTotal, shortfall } = params
+  daysUntilDeadline: number
+  deadline: string
+  hasPaymentAccount: boolean
+}): Promise<{
+  summary: string
+  contributionAnalysis: string
+  planHealth: string
+  deadlineAnalysis: string
+  risks: string[]
+  recommendations: string[]
+  overallScore: 'STRONG' | 'MODERATE' | 'AT_RISK'
+  // Legacy fields for backward compat
+  message: string
+  suggestion?: string
+  suggestedAmount?: number
+}> {
+  const {
+    title, description, targetAmount, participants, contributionType, paymentType,
+    equalAmount, projectedTotal, shortfall, daysUntilDeadline, deadline, hasPaymentAccount
+  } = params
 
-  const prompt = `You are a financial planning assistant for a collaborative savings platform called Tally.
+  const suggestedEqualAmount = participants > 0 ? Math.ceil(targetAmount / participants) : 0
 
-A group admin has just created a shared financial goal. Below are the exact numbers (pre-calculated by the application — do NOT recalculate):
+  const prompt = `You are a financial planning assistant for Tally, a collaborative group savings platform.
 
-Goal: "${title}"
-Target amount: ₦${targetAmount.toLocaleString()}
-Number of participants: ${participants}
-Contribution type: ${contributionType}
-${contributionType === 'EQUAL' ? `Equal contribution per person: ₦${equalAmount?.toLocaleString() ?? 0}` : ''}
-Projected total (sum of commitments): ₦${projectedTotal.toLocaleString()}
-Shortfall (target - projected): ₦${shortfall.toLocaleString()}
+A group admin has set up a shared financial goal. The application has already run deterministic calculations — use ONLY these numbers, do NOT recalculate:
 
-Based on these numbers, write a short, plain-language financial plan check (2-3 sentences max). 
-- If shortfall is 0, confirm the plan is perfectly matched.
-- If there is a shortfall, explain the gap and suggest what the equal contribution should be (calculated as: targetAmount / participants = ₦${Math.ceil(targetAmount / participants).toLocaleString()}).
-- Be friendly, clear, and encouraging.
-- Do not use markdown headers or bullet points. Just natural sentences.
+GOAL CONFIGURATION:
+- Title: "${title}"
+${description ? `- Description: "${description}"` : ''}
+- Target amount: ₦${targetAmount.toLocaleString()}
+- Number of expected participants: ${participants}
+- Contribution type: ${contributionType} (${contributionType === 'EQUAL' ? `₦${(equalAmount ?? suggestedEqualAmount).toLocaleString()} per person` : 'Each person chooses their own amount'})
+- Payment type: ${paymentType} (${paymentType === 'FULL' ? 'Full payment required' : 'Partial payments allowed'})
+- Deadline: ${deadline} (${daysUntilDeadline} days from now)
+- Projected total from commitments: ₦${projectedTotal.toLocaleString()}
+- Shortfall vs target: ₦${shortfall.toLocaleString()}
+- Payment account configured: ${hasPaymentAccount ? 'Yes' : 'No — members won\'t know where to pay!'}
 
-Then respond with a JSON object like this:
+Write a structured plan assessment with EXACTLY these JSON fields. Be concise, specific, and use actual numbers:
+
 {
-  "message": "Your plain language explanation here",
-  "suggestion": "Optional: one-sentence suggested fix if there is a shortfall",
-  "suggestedAmount": 25000
+  "summary": "1-2 sentences: what this group is trying to achieve and how.",
+  "contributionAnalysis": "1-2 sentences: breakdown of the contribution math — e.g. 10 contributors × ₦50,000 = ₦500,000.",
+  "planHealth": "1-2 sentences: whether the current structure can realistically hit the target.",
+  "deadlineAnalysis": "1-2 sentences: urgency assessment — is there enough time given the deadline and amount needed?",
+  "risks": ["Risk 1", "Risk 2"],
+  "recommendations": ["Specific recommendation 1", "Specific recommendation 2"],
+  "overallScore": "STRONG" | "MODERATE" | "AT_RISK",
+  "message": "One plain-language summary sentence for display (no markdown).",
+  "suggestion": "One-line suggestion if shortfall > 0, or omit if plan is perfect.",
+  "suggestedAmount": ${suggestedEqualAmount}
 }
 
-Only include "suggestion" and "suggestedAmount" if there is a shortfall > 0.`
+Rules:
+- risks array: only include real risks based on the data (max 4). If no payment account, always include it as a risk.
+- recommendations array: concrete, actionable (max 4). Never vague.
+- overallScore: STRONG if shortfall=0 and days>7, MODERATE if manageable, AT_RISK if shortfall>20% of target or days<5.
+- Do NOT include "suggestion" or "suggestedAmount" if shortfall === 0.
+- Do NOT invent facts not in the data provided.`
 
   try {
     const response = await client.messages.create({
       model: MODEL,
-      max_tokens: 512,
+      max_tokens: 700,
       messages: [{ role: 'user', content: prompt }],
     })
 
@@ -57,14 +90,24 @@ Only include "suggestion" and "suggestedAmount" if there is a shortfall > 0.`
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0])
     }
-    return { message: text }
+    return { summary: text, contributionAnalysis: '', planHealth: '', deadlineAnalysis: '', risks: [], recommendations: [], overallScore: 'MODERATE', message: text }
   } catch (e) {
     console.error('Plan check AI error:', e)
+    // Deterministic fallback
+    const score: 'STRONG' | 'MODERATE' | 'AT_RISK' = shortfall === 0 && daysUntilDeadline > 7 ? 'STRONG' : shortfall > targetAmount * 0.2 || daysUntilDeadline < 5 ? 'AT_RISK' : 'MODERATE'
+    const msg = shortfall === 0
+      ? `Your contribution plan matches the ₦${targetAmount.toLocaleString()} target exactly with ${participants} contributors at ₦${(equalAmount ?? suggestedEqualAmount).toLocaleString()} each.`
+      : `Your current plan is ₦${shortfall.toLocaleString()} short. Consider raising individual contributions to ₦${suggestedEqualAmount.toLocaleString()} per person.`
     return {
-      message:
-        shortfall === 0
-          ? `Your contribution plan matches the ₦${targetAmount.toLocaleString()} target exactly. The group is set up for success.`
-          : `Your current plan is ₦${shortfall.toLocaleString()} below the target. Consider increasing contributions to ₦${Math.ceil(targetAmount / participants).toLocaleString()} per person.`,
+      summary: `${participants} contributors working toward ₦${targetAmount.toLocaleString()} by ${deadline}.`,
+      contributionAnalysis: `${participants} × ₦${(equalAmount ?? suggestedEqualAmount).toLocaleString()} = ₦${projectedTotal.toLocaleString()} projected.`,
+      planHealth: shortfall === 0 ? 'Plan is fully funded if all contributors complete their commitments.' : `₦${shortfall.toLocaleString()} shortfall detected.`,
+      deadlineAnalysis: daysUntilDeadline <= 0 ? 'Deadline has passed.' : `${daysUntilDeadline} days remaining to collect funds.`,
+      risks: shortfall > 0 ? [`₦${shortfall.toLocaleString()} shortfall between projected contributions and target`] : [],
+      recommendations: shortfall > 0 ? [`Increase each contribution to ₦${suggestedEqualAmount.toLocaleString()} to meet the target`] : ['Send an early reminder to all contributors'],
+      overallScore: score,
+      message: msg,
+      ...(shortfall > 0 && { suggestion: `Raise each contribution to ₦${suggestedEqualAmount.toLocaleString()} to close the gap.`, suggestedAmount: suggestedEqualAmount }),
     }
   }
 }
@@ -398,5 +441,67 @@ Respond STRICTLY in valid JSON format:
     paymentNote: null,
     confidence: acctMatch ? 0.7 : 0.3,
     summary: acctMatch ? `Extracted account number ${acctMatch[0]}` : 'Could not parse bank details automatically.',
+  }
+}
+
+// ─── Budget Category Suggestion ────────────────────────────────────────────────
+// AI proposes WHAT the money should go toward and in what priority order — it
+// never decides what's actually affordable. That's computed deterministically
+// in the API route from the real totalCollected figure, same principle as the
+// rest of this app's financial math (see finance.ts).
+export async function suggestBudgetCategories(params: {
+  title: string
+  description?: string | null
+  targetAmount: number
+}): Promise<{
+  categories: Array<{ name: string; allocatedAmount: number; reasoning: string }>
+}> {
+  const { title, description, targetAmount } = params
+
+  const prompt = `You are a budgeting assistant for Tally, a collaborative group finance platform.
+
+A group has a shared goal. Based on its title and description, infer what the money will actually need to be spent on, and propose a sensible spending category breakdown.
+
+GOAL:
+- Title: "${title}"
+${description ? `- Description: "${description}"` : '- No description provided'}
+- Total target amount: ₦${targetAmount.toLocaleString()}
+
+Propose 3-6 spending categories that this specific goal would realistically need, ordered from MOST essential/urgent first to least essential last (this order matters — it will be used to decide what gets funded first as money comes in).
+
+Respond with EXACTLY this JSON shape:
+{
+  "categories": [
+    { "name": "Category name", "allocatedAmount": 000000, "reasoning": "One sentence on why this is needed and why it's at this priority." }
+  ]
+}
+
+Rules:
+- The allocatedAmount values must sum to exactly ₦${targetAmount.toLocaleString()}.
+- Category names and amounts must be specific to THIS goal's title/description — do not use generic placeholders.
+- Order matters: index 0 is the most essential/urgent category, funded first.
+- Do not invent facts about the group not implied by the title/description.`
+
+  try {
+    const response = await client.messages.create({
+      model: MODEL,
+      max_tokens: 700,
+      messages: [{ role: 'user', content: prompt }],
+    })
+
+    const text = response.content[0].type === 'text' ? response.content[0].text : ''
+    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0])
+    }
+    throw new Error('No JSON in AI response')
+  } catch (e) {
+    console.error('Budget suggestion AI error:', e)
+    // Deterministic fallback — one catch-all category for the full target
+    return {
+      categories: [
+        { name: 'General Expenses', allocatedAmount: targetAmount, reasoning: 'AI suggestion unavailable — add specific categories manually.' },
+      ],
+    }
   }
 }

@@ -336,7 +336,7 @@ export default function CreateGoalPage() {
               <div style={{ background: 'var(--color-forest-subtle)', borderRadius: 'var(--radius-md)', padding: '14px 16px', marginBottom: '4px' }}>
                 <p style={{ fontSize: '13px', color: 'var(--color-forest)', lineHeight: '1.5', fontWeight: '500' }}>
                   <Building2 size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
-                  Members will see these payment details when they want to contribute. You can skip this for now and update it later from the goal settings.
+                  Members will see these payment details when they want to contribute.
                 </p>
               </div>
 

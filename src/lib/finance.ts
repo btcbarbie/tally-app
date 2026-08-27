@@ -76,6 +76,20 @@ export function getGoalRiskStatus(
   return 'AT_RISK'
 }
 
+// Walks categories in priority order (index 0 = most essential) and marks each
+// AFFORDABLE_NOW if the running total up to and including it fits within what's
+// actually been collected — never left to the AI to guess.
+export function computeCategoryNecessity(
+  categories: Array<{ allocatedAmount: number }>,
+  totalCollected: number
+): Array<'AFFORDABLE_NOW' | 'NEEDED_NOT_YET_FUNDED'> {
+  let runningTotal = 0
+  return categories.map((c) => {
+    runningTotal += c.allocatedAmount
+    return runningTotal <= totalCollected ? 'AFFORDABLE_NOW' : 'NEEDED_NOT_YET_FUNDED'
+  })
+}
+
 export function buildGoalFinancialState(goal: {
   targetAmount: number
   deadline: Date | string

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         commitments: { include: { member: true } },
         payments: true,
         members: true,
-        receipts: true,
+        receipts: { include: { member: true }, orderBy: { createdAt: 'desc' } },
         insights: { orderBy: { createdAt: 'desc' }, take: 10 },
       },
     })
@@ -36,6 +36,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const goal = await prisma.goal.findUnique({ where: { id } })
     if (!goal) return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
     if (adminToken && goal.adminToken !== adminToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+
+    if (
+      (bankName !== undefined && !String(bankName).trim()) ||
+      (accountName !== undefined && !String(accountName).trim()) ||
+      (accountNumber !== undefined && !String(accountNumber).trim())
+    ) {
+      return NextResponse.json({ error: 'Bank name, account name, and account number cannot be empty' }, { status: 400 })
+    }
 
     const updated = await prisma.goal.update({
       where: { id },

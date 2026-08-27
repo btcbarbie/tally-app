@@ -41,6 +41,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    if (!bankName?.trim() || !accountName?.trim() || !accountNumber?.trim()) {
+      return NextResponse.json({ error: 'Payment account details are required' }, { status: 400 })
+    }
+
     const adminToken = randomUUID()
     const shareToken = randomUUID().slice(0, 12)
 
