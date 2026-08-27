@@ -89,7 +89,7 @@ export default async function HomePage() {
             }}
           >
             <Sparkles size={12} />
-            AI-Powered · Group Finance
+            AI-Powered · Group Budgeting &amp; Finance
           </div>
           <h1
             style={{
@@ -104,7 +104,7 @@ export default async function HomePage() {
             My Shared Goals
           </h1>
           <p style={{ color: 'var(--color-muted)', fontSize: '16px', maxWidth: '480px' }}>
-            Plan, track, and achieve shared financial goals — together.
+            Plan, budget, and achieve shared financial goals — together.
           </p>
         </div>
 

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   keywords: 'group savings, collaborative finance, shared goals, contribution tracker, financial planning',
   openGraph: {
     title: 'Tally — Collaborative Financial Planning',
-    description: 'Plan, track, and achieve shared financial goals together.',
+    description: 'Plan, budget, and achieve shared financial goals together.',
     type: 'website',
   },
 }
