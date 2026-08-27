@@ -569,6 +569,7 @@ export default function GoalOverviewPage() {
     if (status === 'POSSIBLE_DUPLICATE') return 'var(--color-danger)'
     if (status === 'AMOUNT_MISMATCH') return 'var(--color-warning)'
     if (status === 'NEEDS_REVIEW') return 'var(--color-amber)'
+    if (status === 'NOT_A_RECEIPT') return 'var(--color-danger)'
     return 'var(--color-muted)'
   }
 

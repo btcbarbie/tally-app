@@ -146,6 +146,8 @@ Write:
 1. A 2-sentence financial insight about the group's current status.
 2. One recommended action for the admin.
 
+Both fields are shown as plain text, not rendered markdown — no **bold**, no bullet points, no headers. Use ₦ for currency, never "NGN" or a plain "N".
+
 Respond as JSON:
 {
   "insight": "2-sentence financial insight",
@@ -224,11 +226,12 @@ Extract the following and respond as JSON:
   "summary": "Brief reconciliation summary"
 }
 
-Status options: "LIKELY_MATCH" | "NEEDS_REVIEW" | "POSSIBLE_DUPLICATE" | "AMOUNT_MISMATCH" | "INSUFFICIENT_EVIDENCE"
+Status options: "LIKELY_MATCH" | "NEEDS_REVIEW" | "POSSIBLE_DUPLICATE" | "AMOUNT_MISMATCH" | "INSUFFICIENT_EVIDENCE" | "NOT_A_RECEIPT"
 Flags can include: "amount_mismatch", "possible_duplicate", "date_outside_window", "payer_name_mismatch", "missing_reference"
 Confidence is 0 to 1.
 Only mark POSSIBLE_DUPLICATE if the reference matches an existing one.
-Only mark AMOUNT_MISMATCH if the extracted amount differs from the expected amount.`
+Only mark AMOUNT_MISMATCH if the extracted amount differs from the expected amount.
+Use "NOT_A_RECEIPT" when the image/text is clearly not a bank transfer, deposit slip, or payment confirmation at all (e.g. a random photo, screenshot, or unrelated document) — be confident about this, it skips human review entirely and tells the member to re-upload, so only use it when you're sure it isn't a receipt, not just when a real receipt is blurry or incomplete.`
 
   try {
     const messages: Anthropic.MessageParam[] = [
@@ -296,6 +299,11 @@ export async function answerFinancialQuestion(params: {
 
 You have access to exact financial data provided below — do NOT invent or recalculate any numbers. Use only the data given.
 Always cite specific figures when answering financial questions. Keep answers concise (2-4 sentences max).
+
+Formatting rules — this response is shown as plain text, not rendered markdown:
+- Do NOT use markdown syntax: no **bold**, no _italics_, no asterisk/dash bullet lists, no headers.
+- Write in plain conversational sentences only.
+- Always write currency amounts with the ₦ symbol exactly as given in the data (e.g. ₦350,000) — never "NGN", never a plain "N", never spelled out as "Naira".
 
 Current goal: "${goalTitle}"
 Financial state: ${JSON.stringify(financialState, null, 2)}

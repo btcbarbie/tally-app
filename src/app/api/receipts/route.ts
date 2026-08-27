@@ -57,8 +57,13 @@ export async function POST(req: NextRequest) {
     })
 
     // Create a pending payment record
+    // A confident "this isn't a receipt at all" verdict skips human review
+    // entirely — no payment record, no pending-admin queue entry, just an
+    // immediate rejection telling the member to upload the real thing.
+    const isNotAReceipt = extraction.status === 'NOT_A_RECEIPT'
+
     let paymentId: string | undefined
-    if (extraction.extractedAmount && extraction.extractedAmount > 0) {
+    if (!isNotAReceipt && extraction.extractedAmount && extraction.extractedAmount > 0) {
       const payment = await prisma.payment.create({
         data: {
           memberId,
@@ -87,7 +92,7 @@ export async function POST(req: NextRequest) {
         confidence: extraction.confidence,
         flags: JSON.stringify(extraction.flags),
         aiRawResponse: extraction.summary,
-        status: extraction.status,
+        status: isNotAReceipt ? 'REJECTED' : extraction.status,
       },
     })
 

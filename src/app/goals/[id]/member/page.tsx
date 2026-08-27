@@ -806,44 +806,64 @@ export default function MemberPage() {
             {/* Step 3 or Existing Pending Receipts: AI Scanned & Status Moved to Pending Admin Review */}
             {(receiptResult || pendingReceipts.length > 0 || paymentStep === 3) && (
               <div className="animate-fade-in" style={{ marginTop: paymentStep > 0 ? '16px' : '0' }}>
-                <div
-                  style={{
-                    padding: '16px',
-                    background: 'var(--color-surface-2)',
-                    borderRadius: 'var(--radius-md)',
-                    border: `1px solid ${receiptResult?.extraction?.status === 'LIKELY_MATCH' || pendingReceipts.some(r => r.status === 'LIKELY_MATCH') ? '#bbf7d0' : '#fde68a'}`,
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <ReceiptStatusBadge status={receiptResult?.extraction?.status ?? pendingReceipts[0]?.status ?? 'PENDING_REVIEW'} />
-                    <span className="badge badge-blue">Status: Pending Admin Review</span>
+                {receiptResult?.extraction?.status === 'NOT_A_RECEIPT' ? (
+                  <div style={{ padding: '16px', background: '#fee2e2', borderRadius: 'var(--radius-md)', border: '1px solid #fecaca' }}>
+                    <div style={{ marginBottom: '10px' }}>
+                      <ReceiptStatusBadge status="REJECTED" />
+                    </div>
+                    <p style={{ fontSize: '14px', color: 'var(--color-charcoal)', marginBottom: '10px', lineHeight: '1.5' }}>
+                      🤖 {receiptResult.extraction.summary || "This doesn't look like a payment receipt."}
+                    </p>
+                    <p style={{ fontSize: '13px', color: '#dc2626', fontWeight: '600', marginBottom: '14px' }}>
+                      This wasn&apos;t sent to the admin for review — please upload the actual bank transfer receipt or payment confirmation for your contribution.
+                    </p>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => { setReceiptResult(null); setReceiptFile(null); setReceiptText(''); setPaymentStep(2) }}
+                    >
+                      Try Again
+                    </button>
                   </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: '16px',
+                      background: 'var(--color-surface-2)',
+                      borderRadius: 'var(--radius-md)',
+                      border: `1px solid ${receiptResult?.extraction?.status === 'LIKELY_MATCH' || pendingReceipts.some(r => r.status === 'LIKELY_MATCH') ? '#bbf7d0' : '#fde68a'}`,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <ReceiptStatusBadge status={receiptResult?.extraction?.status ?? pendingReceipts[0]?.status ?? 'PENDING_REVIEW'} />
+                      <span className="badge badge-blue">Status: Pending Admin Review</span>
+                    </div>
 
-                  {receiptResult ? (
-                    <div>
-                      <p style={{ fontSize: '14px', color: 'var(--color-charcoal)', marginBottom: '10px', lineHeight: '1.5' }}>
-                        🤖 <strong>AI Verification:</strong> {receiptResult.extraction.summary}
-                      </p>
-                      {receiptResult.extraction.extractedAmount && (
-                        <div style={{ fontSize: '13px', color: 'var(--color-muted)' }}>
-                          Extracted Amount: <strong style={{ color: 'var(--color-charcoal)' }}>{formatCurrency(receiptResult.extraction.extractedAmount)}</strong>
-                          {' '}{receiptResult.extraction.extractedAmount === receiptResult.expectedAmount
-                            ? <span style={{ color: 'var(--color-success)' }}>✓ Verified real payment</span>
-                            : <span style={{ color: 'var(--color-warning)' }}>⚠ Differs from commitment of {formatCurrency(receiptResult.expectedAmount)}</span>}
-                        </div>
-                      )}
-                      <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--color-forest)', fontWeight: '600' }}>
-                        ✓ Your status has been updated to <strong>Pending Admin Review</strong>. The group admin will confirm your payment.
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <p style={{ fontSize: '13px', color: 'var(--color-charcoal-mid)' }}>
-                        Your payment receipt has been scanned and verified by AI. Your payment status is now <strong>Pending Admin Review</strong>.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    {receiptResult ? (
+                      <div>
+                        <p style={{ fontSize: '14px', color: 'var(--color-charcoal)', marginBottom: '10px', lineHeight: '1.5' }}>
+                          🤖 <strong>AI Verification:</strong> {receiptResult.extraction.summary}
+                        </p>
+                        {receiptResult.extraction.extractedAmount && (
+                          <div style={{ fontSize: '13px', color: 'var(--color-muted)' }}>
+                            Extracted Amount: <strong style={{ color: 'var(--color-charcoal)' }}>{formatCurrency(receiptResult.extraction.extractedAmount)}</strong>
+                            {' '}{receiptResult.extraction.extractedAmount === receiptResult.expectedAmount
+                              ? <span style={{ color: 'var(--color-success)' }}>✓ Verified real payment</span>
+                              : <span style={{ color: 'var(--color-warning)' }}>⚠ Differs from commitment of {formatCurrency(receiptResult.expectedAmount)}</span>}
+                          </div>
+                        )}
+                        <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--color-forest)', fontWeight: '600' }}>
+                          ✓ Your status has been updated to <strong>Pending Admin Review</strong>. The group admin will confirm your payment.
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p style={{ fontSize: '13px', color: 'var(--color-charcoal-mid)' }}>
+                          Your payment receipt has been scanned and verified by AI. Your payment status is now <strong>Pending Admin Review</strong>.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
