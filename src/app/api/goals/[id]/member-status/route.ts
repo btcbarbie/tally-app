@@ -28,12 +28,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         commitments: { include: { member: true } },
         payments: true,
         members: true,
+        reminders: { orderBy: { createdAt: 'desc' } },
       },
     })
 
     if (!goal) return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
 
     const financialState = buildGoalFinancialState(goal)
+
+    // Deliver reminders addressed to everyone, or to this member specifically
+    // if they haven't fully paid yet.
+    const isUnpaid = member.commitment?.status !== 'PAID'
+    const reminders = goal.reminders
+      .filter((r) => r.audience === 'ALL' || (r.audience === 'UNPAID' && isUnpaid))
+      .map((r) => ({ id: r.id, message: r.message, createdAt: r.createdAt }))
 
     return NextResponse.json({
       goal: {
@@ -69,6 +77,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         payments: member.payments,
         receipts: member.receipts,
       },
+      reminders,
     })
   } catch (e) {
     console.error(e)
