@@ -439,6 +439,41 @@ export default function MemberPage() {
           </div>
         </div>
 
+        {/* My Contribution Card */}
+        <div className="card" style={{ padding: '22px', marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Target size={16} color="var(--color-forest)" />
+            My Contribution — {member.name}
+          </h2>
+
+          {commitment ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {[
+                { label: 'Commitment', value: formatCurrency(commitment.committedAmount) },
+                { label: 'Amount Paid', value: formatCurrency(commitment.paidAmount), highlight: commitment.paidAmount > 0 },
+                { label: 'Amount Remaining', value: formatCurrency(commitment.outstandingAmount), warn: commitment.outstandingAmount > 0 },
+              ].map(row => (
+                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--color-border)' }}>
+                  <span style={{ fontSize: '14px', color: 'var(--color-muted)' }}>{row.label}</span>
+                  <span style={{
+                    fontSize: '15px',
+                    fontWeight: '700',
+                    color: row.highlight ? 'var(--color-success)' : row.warn && commitment.outstandingAmount > 0 ? 'var(--color-warning)' : 'var(--color-charcoal)',
+                  }}>
+                    {row.value}
+                  </span>
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
+                <span style={{ fontSize: '14px', color: 'var(--color-muted)' }}>Status</span>
+                <StatusBadge status={commitment.status} hasPendingReceipt={pendingReceipts.length > 0 || paymentStep === 3} />
+              </div>
+            </div>
+          ) : (
+            <p style={{ color: 'var(--color-muted)', fontSize: '14px' }}>No commitment record found.</p>
+          )}
+        </div>
+
         {/* Group Budget — same shared view every member and the admin sees */}
         {budgetCategories.length > 0 && (
           <div style={{ marginBottom: '20px' }}>
@@ -483,41 +518,6 @@ export default function MemberPage() {
             </div>
           </div>
         )}
-
-        {/* My Contribution Card */}
-        <div className="card" style={{ padding: '22px', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Target size={16} color="var(--color-forest)" />
-            My Contribution — {member.name}
-          </h2>
-
-          {commitment ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {[
-                { label: 'Commitment', value: formatCurrency(commitment.committedAmount) },
-                { label: 'Amount Paid', value: formatCurrency(commitment.paidAmount), highlight: commitment.paidAmount > 0 },
-                { label: 'Amount Remaining', value: formatCurrency(commitment.outstandingAmount), warn: commitment.outstandingAmount > 0 },
-              ].map(row => (
-                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--color-border)' }}>
-                  <span style={{ fontSize: '14px', color: 'var(--color-muted)' }}>{row.label}</span>
-                  <span style={{
-                    fontSize: '15px',
-                    fontWeight: '700',
-                    color: row.highlight ? 'var(--color-success)' : row.warn && commitment.outstandingAmount > 0 ? 'var(--color-warning)' : 'var(--color-charcoal)',
-                  }}>
-                    {row.value}
-                  </span>
-                </div>
-              ))}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
-                <span style={{ fontSize: '14px', color: 'var(--color-muted)' }}>Status</span>
-                <StatusBadge status={commitment.status} hasPendingReceipt={pendingReceipts.length > 0 || paymentStep === 3} />
-              </div>
-            </div>
-          ) : (
-            <p style={{ color: 'var(--color-muted)', fontSize: '14px' }}>No commitment record found.</p>
-          )}
-        </div>
 
         {/* Ask Tally AI */}
         <div style={{ marginBottom: '20px' }}>
