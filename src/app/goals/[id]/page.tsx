@@ -577,7 +577,6 @@ export default function GoalOverviewPage() {
     "Who still owes?",
     "How much are we short?",
     "What happens if 3 people don't pay?",
-    "Draft a reminder for unpaid members.",
     ...(budgetCategories.length > 0 ? ["What can we afford right now?"] : []),
   ]
 
@@ -1498,7 +1497,7 @@ export default function GoalOverviewPage() {
             </div>
 
             {/* AI Feature Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', marginTop: '16px' }}>
               <button
                 className="card"
                 style={{ padding: '18px', textAlign: 'left', cursor: 'pointer', border: 'none', background: 'var(--color-surface)', width: '100%' }}
@@ -1508,29 +1507,7 @@ export default function GoalOverviewPage() {
                 <div style={{ fontSize: '14px', fontWeight: '700', marginBottom: '4px' }}>Forecast</div>
                 <div style={{ fontSize: '13px', color: 'var(--color-muted)' }}>Will we reach our target?</div>
               </button>
-              <button
-                className="card"
-                style={{ padding: '18px', textAlign: 'left', cursor: 'pointer', border: 'none', background: 'var(--color-surface)', width: '100%' }}
-                onClick={generateReminderMsg}
-              >
-                <Bell size={20} color="var(--color-amber)" style={{ marginBottom: '8px' }} />
-                <div style={{ fontSize: '14px', fontWeight: '700', marginBottom: '4px' }}>Reminder</div>
-                <div style={{ fontSize: '13px', color: 'var(--color-muted)' }}>Draft a contributor reminder</div>
-              </button>
             </div>
-
-            {/* Generated Reminder in AI tab */}
-            {reminder && (
-              <div className="ai-card animate-fade-in" style={{ marginTop: '16px' }}>
-                <div className="ai-label"><Bell size={12} /> Generated Reminder</div>
-                <p style={{ fontSize: '14px', lineHeight: '1.7', color: 'var(--color-charcoal)', marginBottom: '12px', whiteSpace: 'pre-wrap' }}>
-                  {reminder}
-                </p>
-                <button className="btn btn-amber btn-sm" onClick={copyReminder}>
-                  {reminderCopied ? <><Check size={13} /> Copied!</> : <><Copy size={13} /> Copy Message</>}
-                </button>
-              </div>
-            )}
           </div>
         )}
 
