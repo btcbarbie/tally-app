@@ -185,7 +185,6 @@ export default function MemberPage() {
 
   // Receipt upload
   const [receiptFile, setReceiptFile] = useState<File | null>(null)
-  const [receiptText, setReceiptText] = useState('')
   const [receiptLoading, setReceiptLoading] = useState(false)
   const [receiptResult, setReceiptResult] = useState<{
     extraction: { extractedAmount?: number; extractedPayer?: string; extractedRef?: string; extractedDate?: string; confidence: number; flags: string[]; status: string; summary: string }
@@ -289,7 +288,6 @@ export default function MemberPage() {
       formData.append('memberId', member.id)
       formData.append('goalId', goalId)
       if (receiptFile) formData.append('file', receiptFile)
-      if (receiptText) formData.append('textDescription', receiptText)
 
       const res = await fetch('/api/receipts', { method: 'POST', body: formData })
       const data = await res.json()
@@ -776,23 +774,10 @@ export default function MemberPage() {
                     />
                   </div>
 
-                  <div className="form-group">
-                    <label className="form-label">
-                      Or describe the transfer <span className="form-label-optional">(text description / bank reference)</span>
-                    </label>
-                    <textarea
-                      className="form-input"
-                      rows={2}
-                      placeholder="e.g. Transfer of ₦20,000 from Musa Aliyu on 25/08/2026, Ref: TXN987654"
-                      value={receiptText}
-                      onChange={(e) => setReceiptText(e.target.value)}
-                    />
-                  </div>
-
                   <button
                     className="btn btn-primary btn-lg"
                     onClick={uploadReceipt}
-                    disabled={receiptLoading || (!receiptFile && !receiptText)}
+                    disabled={receiptLoading || !receiptFile}
                     style={{ width: '100%', justifyContent: 'center' }}
                   >
                     {receiptLoading
