@@ -14,7 +14,7 @@ const BOOTSTRAP_KEY = 'tally_demo_bootstrapped_v2'
 
 /**
  * Runs once on first load to seed localStorage with the demo admin/member
- * tokens so the GoalCards correctly show "Delete Goal" and "Leave Group".
+ * tokens so the GoalCards correctly show "Delete Contribution" and "Leave Group".
  *
  * This is reset (re-runs) if the user clears their localStorage or if the
  * bootstrap version key changes.

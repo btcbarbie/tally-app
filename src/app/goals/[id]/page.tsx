@@ -620,7 +620,7 @@ export default function GoalOverviewPage() {
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {isMember && (
               <Link href={`/goals/${goalId}/member?memberToken=${memberToken}`} className="btn btn-secondary btn-sm">
-                My Contribution
+                View Contribution
               </Link>
             )}
             {goal.joinType === 'OPEN_LINK' && isAdmin && (
@@ -634,9 +634,9 @@ export default function GoalOverviewPage() {
                 onClick={deleteGoal}
                 disabled={lifecycleLoading}
                 style={{ color: '#dc2626', border: '1px solid #fecaca', background: '#fef2f2' }}
-                title="Delete Goal"
+                title="Delete Contribution"
               >
-                <Trash2 size={14} /> Delete Goal
+                <Trash2 size={14} /> Delete Contribution
               </button>
             )}
             {isAdmin && <span className="badge badge-forest">Admin</span>}
@@ -1094,7 +1094,7 @@ export default function GoalOverviewPage() {
                       </button>
                     )}
                     <button className="btn btn-ghost btn-sm" onClick={deleteGoal} disabled={lifecycleLoading} style={{ color: '#dc2626' }}>
-                      <Trash2 size={14} /> Delete Goal Permanently
+                      <Trash2 size={14} /> Delete Contribution Permanently
                     </button>
                   </div>
                 </div>

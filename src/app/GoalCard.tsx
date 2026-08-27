@@ -229,9 +229,9 @@ export default function GoalCard({ goal, financialState: fs }: GoalCardProps) {
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#fef2f2')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-            title="Delete Goal"
+            title="Delete Contribution"
           >
-            <Trash2 size={13} /> {loading ? 'Deleting...' : 'Delete Goal'}
+            <Trash2 size={13} /> {loading ? 'Deleting...' : 'Delete Contribution'}
           </button>
         ) : isMember ? (
           <button
@@ -253,7 +253,7 @@ export default function GoalCard({ goal, financialState: fs }: GoalCardProps) {
         )}
 
         <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-forest)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          {isMember ? 'My Contribution' : 'View Goal'} <ArrowRight size={14} />
+          View Contribution <ArrowRight size={14} />
         </span>
       </div>
     </Link>
