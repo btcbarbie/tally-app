@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   Target, Calendar, Users, UploadCloud, RefreshCw, Sparkles,
   CheckCircle, Clock, AlertCircle, Copy, Check, ArrowLeft, Building2, ChevronDown, LogOut,
-  MessageSquare, Send, Wallet,
+  MessageSquare, Send, Wallet, Bell,
 } from 'lucide-react'
 
 interface BudgetCategoryView {
@@ -57,6 +57,12 @@ interface MemberData {
   commitment: Commitment | null
   payments: Payment[]
   receipts: Receipt[]
+}
+
+interface ReminderAlert {
+  id: string
+  message: string
+  createdAt: string
 }
 
 interface GoalData {
@@ -147,6 +153,7 @@ export default function MemberPage() {
   const [goal, setGoal] = useState<GoalData | null>(null)
   const [fs, setFs] = useState<FinancialState | null>(null)
   const [member, setMember] = useState<MemberData | null>(null)
+  const [reminderAlerts, setReminderAlerts] = useState<ReminderAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [leaving, setLeaving] = useState(false)
@@ -255,6 +262,7 @@ export default function MemberPage() {
       setGoal(data.goal)
       setFs(data.financialState)
       setMember(data.member)
+      setReminderAlerts(data.reminders ?? [])
     } catch (e) {
       console.error(e)
       setNotFound(true)
@@ -377,6 +385,23 @@ export default function MemberPage() {
             <p style={{ fontSize: '14px', color: 'var(--color-muted)', lineHeight: '1.5' }}>{goal.description}</p>
           )}
         </div>
+
+        {/* Reminders from the group admin */}
+        {reminderAlerts.length > 0 && (
+          <div style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {reminderAlerts.map((r) => (
+              <div key={r.id} style={{ padding: '14px 16px', background: '#fef9ec', border: '1px solid #fde68a', borderRadius: '10px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <Bell size={16} color="var(--color-amber)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <p style={{ fontSize: '11px', fontWeight: '700', color: 'var(--color-amber)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '4px' }}>
+                    Reminder from your group admin
+                  </p>
+                  <p style={{ fontSize: '14px', color: 'var(--color-charcoal)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{r.message}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Group Progress Card */}
         <div className="card" style={{ padding: '22px', marginBottom: '20px' }}>

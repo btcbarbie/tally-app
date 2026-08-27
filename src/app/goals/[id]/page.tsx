@@ -174,6 +174,8 @@ export default function GoalOverviewPage() {
   const [reminder, setReminder] = useState('')
   const [reminderLoading, setReminderLoading] = useState(false)
   const [reminderCopied, setReminderCopied] = useState(false)
+  const [reminderSending, setReminderSending] = useState<'ALL' | 'UNPAID' | null>(null)
+  const [reminderSentInfo, setReminderSentInfo] = useState<{ audience: 'ALL' | 'UNPAID'; count: number } | null>(null)
 
   // Budget
   const [budgetCategories, setBudgetCategories] = useState<BudgetCategoryView[]>([])
@@ -523,6 +525,26 @@ export default function GoalOverviewPage() {
     navigator.clipboard.writeText(reminder)
     setReminderCopied(true)
     setTimeout(() => setReminderCopied(false), 2500)
+  }
+
+  const sendReminder = async (audience: 'ALL' | 'UNPAID') => {
+    if (!reminder.trim()) return
+    setReminderSending(audience)
+    setReminderSentInfo(null)
+    try {
+      const res = await fetch(`/api/goals/${goalId}/reminders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminToken, message: reminder, audience }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to send reminder')
+      setReminderSentInfo({ audience, count: data.recipientCount })
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to send reminder')
+    } finally {
+      setReminderSending(null)
+    }
   }
 
   const confirmReceipt = async (receiptId: string, paymentId: string | undefined, action: 'confirm' | 'reject') => {
@@ -962,17 +984,34 @@ export default function GoalOverviewPage() {
                   </div>
                 ) : (
                   <div>
-                    <div style={{ background: 'var(--color-surface-2)', borderRadius: '10px', padding: '16px', fontSize: '14px', lineHeight: '1.7', color: 'var(--color-charcoal)', marginBottom: '14px', whiteSpace: 'pre-wrap' }}>
-                      {reminder}
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <textarea
+                      className="form-input"
+                      value={reminder}
+                      onChange={(e) => { setReminder(e.target.value); setReminderSentInfo(null) }}
+                      rows={5}
+                      style={{ marginBottom: '14px', fontSize: '14px', lineHeight: '1.7', whiteSpace: 'pre-wrap' }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
                       <button className="btn btn-primary btn-sm" onClick={copyReminder}>
                         {reminderCopied ? <><Check size={13} /> Copied!</> : <><Copy size={13} /> Copy Message</>}
                       </button>
-                      <button className="btn btn-ghost btn-sm" onClick={() => { setReminder(''); generateReminderMsg() }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => { setReminder(''); setReminderSentInfo(null); generateReminderMsg() }}>
                         <RefreshCw size={13} /> Regenerate
                       </button>
                     </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', paddingTop: '12px', borderTop: '1px solid var(--color-border)' }}>
+                      <button className="btn btn-amber btn-sm" onClick={() => sendReminder('ALL')} disabled={!!reminderSending || !reminder.trim()}>
+                        {reminderSending === 'ALL' ? 'Sending...' : <><Send size={13} /> Send to All Members</>}
+                      </button>
+                      <button className="btn btn-amber btn-sm" onClick={() => sendReminder('UNPAID')} disabled={!!reminderSending || !reminder.trim()}>
+                        {reminderSending === 'UNPAID' ? 'Sending...' : <><Send size={13} /> Send to Unpaid Only</>}
+                      </button>
+                    </div>
+                    {reminderSentInfo && (
+                      <p style={{ marginTop: '10px', fontSize: '13px', color: 'var(--color-success)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Check size={13} /> Sent to {reminderSentInfo.count} {reminderSentInfo.audience === 'ALL' ? 'member' : 'unpaid member'}{reminderSentInfo.count === 1 ? '' : 's'}.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
