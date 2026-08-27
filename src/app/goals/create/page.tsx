@@ -16,9 +16,11 @@ import {
   Lock,
   Building2,
   CreditCard,
+  User,
 } from 'lucide-react'
 
 interface GoalFormData {
+  adminName: string
   title: string
   description: string
   targetAmount: string
@@ -41,6 +43,7 @@ export default function CreateGoalPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState<GoalFormData>({
+    adminName: '',
     title: '',
     description: '',
     targetAmount: '',
@@ -67,6 +70,7 @@ export default function CreateGoalPage() {
 
   const validateStep = () => {
     if (step === 0) {
+      if (!form.adminName.trim()) return 'Please enter your name.'
       if (!form.title.trim()) return 'Please enter a goal title.'
       if (!form.targetAmount || Number(form.targetAmount) <= 0) return 'Please enter a valid target amount.'
       if (!form.deadline) return 'Please select a deadline.'
@@ -172,6 +176,21 @@ export default function CreateGoalPage() {
           {/* ─── Step 0: Goal Details ─── */}
           {step === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <div className="form-group">
+                <label className="form-label">
+                  <User size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
+                  Your Name
+                </label>
+                <input
+                  className="form-input"
+                  placeholder="e.g. Adaeze Okonkwo"
+                  value={form.adminName}
+                  onChange={(e) => update('adminName', e.target.value)}
+                  maxLength={80}
+                />
+                <span className="form-hint">You&apos;re automatically the group&apos;s first contributor.</span>
+              </div>
+
               <div className="form-group">
                 <label className="form-label">
                   <Target size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
@@ -461,6 +480,7 @@ export default function CreateGoalPage() {
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
                   {[
+                    { label: 'Your Name', value: form.adminName },
                     { label: 'Target Amount', value: `₦${Number(form.targetAmount).toLocaleString()}` },
                     { label: 'Deadline', value: new Date(form.deadline).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }) },
                     { label: 'Participants', value: form.expectedParticipants },
