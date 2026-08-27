@@ -142,6 +142,10 @@ export async function PATCH(req: NextRequest) {
           })
         }
       }
+
+      // Invalidate the cached AI Plan Check — it's stale the moment a payment
+      // is confirmed, since it's grounded in totals that just changed.
+      await prisma.aiInsight.deleteMany({ where: { goalId: receipt.goalId, type: 'PLAN_CHECK' } })
     }
 
     return NextResponse.json({ success: true, status: newStatus })

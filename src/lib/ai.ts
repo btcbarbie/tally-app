@@ -72,8 +72,8 @@ Write a structured plan assessment with EXACTLY these JSON fields. Be concise, s
 }
 
 Rules:
-- risks array: only include real risks based on the data (max 4). If no payment account, always include it as a risk.
-- recommendations array: concrete, actionable (max 4). Never vague.
+- risks array: only include real risks based on the data (max 4). If no payment account, always include it as a risk. Each risk is at most 2-3 short lines, in plain everyday words — no jargon, no financial buzzwords.
+- recommendations array: concrete, actionable (max 4). Never vague. Each recommendation is at most 2-3 short lines, in plain everyday words — no jargon, no financial buzzwords.
 - overallScore: STRONG if shortfall=0 and days>7, MODERATE if manageable, AT_RISK if shortfall>20% of target or days<5.
 - Do NOT include "suggestion" or "suggestedAmount" if shortfall === 0.
 - Do NOT invent facts not in the data provided.`
