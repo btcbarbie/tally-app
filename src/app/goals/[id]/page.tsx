@@ -171,6 +171,10 @@ export default function GoalOverviewPage() {
   const [chatLoading, setChatLoading] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
+  // Scroll to Payment Review Queue when the pending-review alert is clicked
+  const reviewQueueRef = useRef<HTMLDivElement>(null)
+  const [pendingScrollToQueue, setPendingScrollToQueue] = useState(false)
+
   // Reminder
   const [reminder, setReminder] = useState('')
   const [reminderLoading, setReminderLoading] = useState(false)
@@ -255,6 +259,13 @@ export default function GoalOverviewPage() {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatHistory])
+
+  useEffect(() => {
+    if (tab === 'contributors' && pendingScrollToQueue && reviewQueueRef.current) {
+      reviewQueueRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setPendingScrollToQueue(false)
+    }
+  }, [tab, pendingScrollToQueue])
 
   const runPlanCheck = async () => {
     setPlanCheckLoading(true)
@@ -763,7 +774,7 @@ export default function GoalOverviewPage() {
         {isAdmin && goal.receipts && goal.receipts.filter(r => r.status === 'PENDING_REVIEW' || r.status === 'LIKELY_MATCH' || r.status === 'NEEDS_REVIEW').length > 0 && (
           <div
             className="animate-fade-in"
-            onClick={() => setTab('contributors')}
+            onClick={() => { setTab('contributors'); setPendingScrollToQueue(true) }}
             style={{
               marginBottom: '20px',
               padding: '14px 18px',
@@ -1200,7 +1211,7 @@ export default function GoalOverviewPage() {
 
             {/* Pending Receipts — Admin Review Queue */}
             {isAdmin && goal.receipts && goal.receipts.filter(r => r.status === 'PENDING_REVIEW' || r.status === 'LIKELY_MATCH' || r.status === 'NEEDS_REVIEW').length > 0 && (
-              <div className="card" style={{ padding: '24px', marginTop: '20px', border: '2px solid #f59e0b' }}>
+              <div ref={reviewQueueRef} className="card" style={{ padding: '24px', marginTop: '20px', border: '2px solid #f59e0b' }}>
                 <h3 style={{ fontSize: '15px', fontWeight: '800', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px', color: '#92400e' }}>
                   🔔 Payment Review Queue — {goal.receipts.filter(r => r.status === 'PENDING_REVIEW' || r.status === 'LIKELY_MATCH' || r.status === 'NEEDS_REVIEW').length} pending
                 </h3>

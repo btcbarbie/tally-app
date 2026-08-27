@@ -806,7 +806,7 @@ export default function MemberPage() {
                     </p>
                     <button
                       className="btn btn-primary btn-sm"
-                      onClick={() => { setReceiptResult(null); setReceiptFile(null); setReceiptText(''); setPaymentStep(2) }}
+                      onClick={() => { setReceiptResult(null); setReceiptFile(null); setPaymentStep(2) }}
                     >
                       Try Again
                     </button>
