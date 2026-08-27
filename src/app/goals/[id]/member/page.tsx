@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import ConfirmDialog from '../../../ConfirmDialog'
 import {
   Target, Calendar, Users, UploadCloud, RefreshCw, Sparkles,
   CheckCircle, Clock, AlertCircle, Copy, Check, ArrowLeft, Building2, ChevronDown, LogOut,
@@ -157,10 +158,11 @@ export default function MemberPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
 
   const handleLeaveGroup = async () => {
     if (!memberToken) return
-    if (!window.confirm(`Are you sure you want to leave "${goal?.title}"? Your commitment and record will be removed from this goal.`)) return
+    setLeaveConfirmOpen(false)
     setLeaving(true)
     try {
       const res = await fetch(`/api/goals/${goalId}/members?memberToken=${memberToken}`, {
@@ -347,7 +349,7 @@ export default function MemberPage() {
             <span className="badge badge-forest" style={{ fontSize: '11px' }}>Member View</span>
             <button
               className="btn btn-ghost btn-sm"
-              onClick={handleLeaveGroup}
+              onClick={() => setLeaveConfirmOpen(true)}
               disabled={leaving}
               style={{ color: '#dc2626', border: '1px solid #fecaca', background: '#fef2f2', fontSize: '12px' }}
               title="Leave Group"
@@ -870,6 +872,15 @@ export default function MemberPage() {
           <p>Questions? Contact your group admin.</p>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={leaveConfirmOpen}
+        title="Leave this group?"
+        message={`Are you sure you want to leave "${goal?.title}"? Your commitment and record will be removed from this goal.`}
+        confirmLabel="Leave Group"
+        onConfirm={handleLeaveGroup}
+        onCancel={() => setLeaveConfirmOpen(false)}
+      />
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

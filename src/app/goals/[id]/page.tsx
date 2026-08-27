@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import ConfirmDialog from '../../ConfirmDialog'
 import {
   ArrowLeft, Sparkles, Users, TrendingUp, Calendar, Target, Copy, Check,
   Send, UploadCloud, RefreshCw, Bell, AlertTriangle, ChevronRight,
@@ -207,6 +208,7 @@ export default function GoalOverviewPage() {
   // Lifecycle
   const [extendDate, setExtendDate] = useState('')
   const [lifecycleLoading, setLifecycleLoading] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   // Payment details editing
   const [editingPayment, setEditingPayment] = useState(false)
@@ -456,7 +458,7 @@ export default function GoalOverviewPage() {
   }
 
   const deleteGoal = async () => {
-    if (!window.confirm(`Are you sure you want to delete "${goal?.title}"? All commitments, payments, and receipts for this goal will be deleted. This action cannot be undone.`)) return
+    setDeleteConfirmOpen(false)
     setLifecycleLoading(true)
     try {
       const res = await fetch(`/api/goals/${goalId}?adminToken=${adminToken || ''}`, {
@@ -631,7 +633,7 @@ export default function GoalOverviewPage() {
             {isAdmin && (
               <button
                 className="btn btn-ghost btn-sm"
-                onClick={deleteGoal}
+                onClick={() => setDeleteConfirmOpen(true)}
                 disabled={lifecycleLoading}
                 style={{ color: '#dc2626', border: '1px solid #fecaca', background: '#fef2f2' }}
                 title="Delete Contribution"
@@ -1093,7 +1095,7 @@ export default function GoalOverviewPage() {
                         <XCircle size={14} /> Close Goal
                       </button>
                     )}
-                    <button className="btn btn-ghost btn-sm" onClick={deleteGoal} disabled={lifecycleLoading} style={{ color: '#dc2626' }}>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setDeleteConfirmOpen(true)} disabled={lifecycleLoading} style={{ color: '#dc2626' }}>
                       <Trash2 size={14} /> Delete Contribution Permanently
                     </button>
                   </div>
@@ -1613,6 +1615,15 @@ export default function GoalOverviewPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Delete this contribution?"
+        message={`Are you sure you want to delete "${goal?.title}"? All commitments, payments, and receipts for this goal will be deleted. This action cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={deleteGoal}
+        onCancel={() => setDeleteConfirmOpen(false)}
+      />
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

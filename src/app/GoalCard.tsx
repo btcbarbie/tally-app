@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Target, Users, Calendar, TrendingUp, ArrowRight, Trash2, LogOut } from 'lucide-react'
+import ConfirmDialog from './ConfirmDialog'
 
 interface GoalCardProps {
   goal: {
@@ -60,6 +61,7 @@ export default function GoalCard({ goal, financialState: fs }: GoalCardProps) {
   const [adminToken, setAdminToken] = useState<string | null>(null)
   const [deleted, setDeleted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -75,54 +77,54 @@ export default function GoalCard({ goal, financialState: fs }: GoalCardProps) {
     }
   }, [goal.id])
 
-  const handleDeleteGoal = async (e: React.MouseEvent) => {
+  const requestDestructiveAction = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!window.confirm(`Are you sure you want to delete "${goal.title}"? All commitments and payments for this goal will be removed.`)) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/goals/${goal.id}?adminToken=${adminToken || ''}`, {
-        method: 'DELETE',
-      })
-      if (res.ok) {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(`tally_admin_${goal.id}`)
-        }
-        setDeleted(true)
-      } else {
-        const data = await res.json()
-        alert(data.error || 'Failed to delete goal')
-      }
-    } catch {
-      alert('Failed to delete goal')
-    } finally {
-      setLoading(false)
-    }
+    setConfirmOpen(true)
   }
 
-  const handleLeaveGroup = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!window.confirm(`Are you sure you want to leave "${goal.title}"? You will be removed from this group.`)) return
+  const confirmDestructiveAction = async () => {
+    setConfirmOpen(false)
     setLoading(true)
-    try {
-      const res = await fetch(`/api/goals/${goal.id}/members?memberToken=${memberToken || ''}`, {
-        method: 'DELETE',
-      })
-      if (res.ok) {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(`tally_member_${goal.id}`)
-          localStorage.removeItem(`tally_memberId_${goal.id}`)
+    if (isAdmin) {
+      try {
+        const res = await fetch(`/api/goals/${goal.id}?adminToken=${adminToken || ''}`, {
+          method: 'DELETE',
+        })
+        if (res.ok) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(`tally_admin_${goal.id}`)
+          }
+          setDeleted(true)
+        } else {
+          const data = await res.json()
+          alert(data.error || 'Failed to delete goal')
         }
-        setDeleted(true)
-      } else {
-        const data = await res.json()
-        alert(data.error || 'Failed to leave group')
+      } catch {
+        alert('Failed to delete goal')
+      } finally {
+        setLoading(false)
       }
-    } catch {
-      alert('Failed to leave group')
-    } finally {
-      setLoading(false)
+    } else {
+      try {
+        const res = await fetch(`/api/goals/${goal.id}/members?memberToken=${memberToken || ''}`, {
+          method: 'DELETE',
+        })
+        if (res.ok) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(`tally_member_${goal.id}`)
+            localStorage.removeItem(`tally_memberId_${goal.id}`)
+          }
+          setDeleted(true)
+        } else {
+          const data = await res.json()
+          alert(data.error || 'Failed to leave group')
+        }
+      } catch {
+        alert('Failed to leave group')
+      } finally {
+        setLoading(false)
+      }
     }
   }
 
@@ -220,7 +222,7 @@ export default function GoalCard({ goal, financialState: fs }: GoalCardProps) {
       <div style={{ paddingTop: '14px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         {isAdmin ? (
           <button
-            onClick={handleDeleteGoal}
+            onClick={requestDestructiveAction}
             disabled={loading}
             style={{
               background: 'none', border: 'none', color: '#dc2626', fontSize: '12px',
@@ -235,7 +237,7 @@ export default function GoalCard({ goal, financialState: fs }: GoalCardProps) {
           </button>
         ) : isMember ? (
           <button
-            onClick={handleLeaveGroup}
+            onClick={requestDestructiveAction}
             disabled={loading}
             style={{
               background: 'none', border: 'none', color: '#dc2626', fontSize: '12px',
@@ -256,6 +258,18 @@ export default function GoalCard({ goal, financialState: fs }: GoalCardProps) {
           View Contribution <ArrowRight size={14} />
         </span>
       </div>
+      <ConfirmDialog
+        open={confirmOpen}
+        title={isAdmin ? 'Delete this contribution?' : 'Leave this group?'}
+        message={
+          isAdmin
+            ? `Are you sure you want to delete "${goal.title}"? All commitments and payments for this goal will be removed.`
+            : `Are you sure you want to leave "${goal.title}"? You will be removed from this group.`
+        }
+        confirmLabel={isAdmin ? 'Delete' : 'Leave Group'}
+        onConfirm={confirmDestructiveAction}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </Link>
   )
 }
