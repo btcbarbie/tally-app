@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Users, Target, Calendar, ArrowRight, AlertCircle, Copy, Check, Building2 } from 'lucide-react'
+import { copyToClipboard } from '@/lib/clipboard'
 
 interface Goal {
   id: string
@@ -125,11 +126,15 @@ export default function JoinPage() {
     }
   }
 
-  const copyAccountNumber = () => {
+  const copyAccountNumber = async () => {
     if (!goal?.accountNumber) return
-    navigator.clipboard.writeText(goal.accountNumber)
-    setCopiedAcct(true)
-    setTimeout(() => setCopiedAcct(false), 2000)
+    const ok = await copyToClipboard(goal.accountNumber)
+    if (ok) {
+      setCopiedAcct(true)
+      setTimeout(() => setCopiedAcct(false), 2000)
+    } else {
+      alert(`Couldn't copy automatically. Account number:\n\n${goal.accountNumber}`)
+    }
   }
 
   /* ── Loading ── */
@@ -248,11 +253,7 @@ export default function JoinPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontWeight: '800', fontSize: '16px', letterSpacing: '1px' }}>{goal.accountNumber}</span>
                       <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(goal.accountNumber!)
-                          setCopiedAcct(true)
-                          setTimeout(() => setCopiedAcct(false), 2000)
-                        }}
+                        onClick={copyAccountNumber}
                         style={{ background: 'none', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--color-forest)' }}
                       >
                         {copiedAcct ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy</>}

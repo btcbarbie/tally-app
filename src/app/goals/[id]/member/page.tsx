@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import ConfirmDialog from '../../../ConfirmDialog'
+import { copyToClipboard } from '@/lib/clipboard'
 import {
   Target, Calendar, Users, UploadCloud, RefreshCw, Sparkles,
   CheckCircle, Clock, AlertCircle, Copy, Check, ArrowLeft, Building2, ChevronDown, LogOut,
@@ -316,11 +317,16 @@ export default function MemberPage() {
     }
   }
 
-  const copyGoalLink = () => {
+  const copyGoalLink = async () => {
     if (!goal) return
-    navigator.clipboard.writeText(window.location.origin + `/goals/${goal.id}`)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    const url = window.location.origin + `/goals/${goal.id}`
+    const ok = await copyToClipboard(url)
+    if (ok) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } else {
+      alert(`Couldn't copy automatically. Here's the link:\n\n${url}`)
+    }
   }
 
   if (loading) {
@@ -660,9 +666,10 @@ export default function MemberPage() {
                           <span style={{ fontWeight: '800', fontSize: '16px', letterSpacing: '0.5px' }}>{goal.accountNumber}</span>
                           <button
                             id="copy-acct-btn-step0"
-                            onClick={() => {
-                              navigator.clipboard.writeText(goal.accountNumber!)
+                            onClick={async () => {
+                              const ok = await copyToClipboard(goal.accountNumber!)
                               const btn = document.getElementById('copy-acct-btn-step0')
+                              if (!ok) { alert(`Couldn't copy automatically. Account number:\n\n${goal.accountNumber}`); return }
                               if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { if (btn) btn.innerHTML = '⎘ Copy' }, 2000) }
                             }}
                             style={{ background: 'none', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', color: 'var(--color-forest)', whiteSpace: 'nowrap' }}
@@ -720,9 +727,10 @@ export default function MemberPage() {
                           <span style={{ fontWeight: '800', fontSize: '16px', letterSpacing: '0.5px' }}>{goal.accountNumber}</span>
                           <button
                             id="copy-acct-btn-step1"
-                            onClick={() => {
-                              navigator.clipboard.writeText(goal.accountNumber!)
+                            onClick={async () => {
+                              const ok = await copyToClipboard(goal.accountNumber!)
                               const btn = document.getElementById('copy-acct-btn-step1')
+                              if (!ok) { alert(`Couldn't copy automatically. Account number:\n\n${goal.accountNumber}`); return }
                               if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { if (btn) btn.innerHTML = '⎘ Copy' }, 2000) }
                             }}
                             style={{ background: 'none', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px', color: 'var(--color-forest)', whiteSpace: 'nowrap' }}

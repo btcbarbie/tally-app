@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import ConfirmDialog from '../../ConfirmDialog'
+import { copyToClipboard } from '@/lib/clipboard'
 import {
   ArrowLeft, Sparkles, Users, TrendingUp, Calendar, Target, Copy, Check,
   Send, RefreshCw, Bell, AlertTriangle, ChevronRight,
@@ -512,18 +513,26 @@ export default function GoalOverviewPage() {
     }
   }
 
-  const copyShareLink = () => {
+  const copyShareLink = async () => {
     if (!goal) return
     const url = `${window.location.origin}/join/${goal.shareToken}`
-    navigator.clipboard.writeText(url)
-    setLinkCopied(true)
-    setTimeout(() => setLinkCopied(false), 2500)
+    const ok = await copyToClipboard(url)
+    if (ok) {
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 2500)
+    } else {
+      alert(`Couldn't copy automatically. Here's the invite link:\n\n${url}`)
+    }
   }
 
-  const copyReminder = () => {
-    navigator.clipboard.writeText(reminder)
-    setReminderCopied(true)
-    setTimeout(() => setReminderCopied(false), 2500)
+  const copyReminder = async () => {
+    const ok = await copyToClipboard(reminder)
+    if (ok) {
+      setReminderCopied(true)
+      setTimeout(() => setReminderCopied(false), 2500)
+    } else {
+      alert(`Couldn't copy automatically. Here's the message:\n\n${reminder}`)
+    }
   }
 
   const sendReminder = async (audience: 'ALL' | 'UNPAID') => {
