@@ -97,11 +97,39 @@ export default function MyGoalsList({ goals }: { goals: GoalListItem[] }) {
     if (typeof window === 'undefined') return
     let cancelled = false
 
+    // A browser that bootstrapped earlier but whose recorded demo goals have
+    // all disappeared from the database (e.g. the demo data was rebuilt on
+    // the server) is left holding dead tokens — which surface as a broken
+    // "Member session not found" page. Detect that and re-bootstrap a fresh
+    // set, clearing the stale keys first. Guarded on `goals.length > 0` so a
+    // transient empty response (DB hiccup) doesn't wipe a valid session.
+    let orphanedDemoIds: string[] = []
+    if (localStorage.getItem(DEMO_BOOTSTRAP_KEY) && goals.length > 0) {
+      let recorded: string[] = []
+      try {
+        recorded = JSON.parse(localStorage.getItem(DEMO_IDS_KEY) || '[]')
+      } catch {
+        recorded = []
+      }
+      const liveIds = new Set(goals.map((g) => g.id))
+      if (recorded.length > 0 && !recorded.some((id) => liveIds.has(id))) {
+        orphanedDemoIds = recorded
+      }
+    }
+
     // Claim the bootstrap flag synchronously, before any await, so React's
     // dev-mode double-invocation of effects (or any other re-entrant call)
     // can't both see it unset and both fire a clone request.
-    const needsBootstrap = !localStorage.getItem(DEMO_BOOTSTRAP_KEY)
-    if (needsBootstrap) localStorage.setItem(DEMO_BOOTSTRAP_KEY, '1')
+    const needsBootstrap = !localStorage.getItem(DEMO_BOOTSTRAP_KEY) || orphanedDemoIds.length > 0
+    if (needsBootstrap) {
+      orphanedDemoIds.forEach((id) => {
+        localStorage.removeItem(`tally_admin_${id}`)
+        localStorage.removeItem(`tally_member_${id}`)
+        localStorage.removeItem(`tally_memberId_${id}`)
+      })
+      if (orphanedDemoIds.length > 0) localStorage.removeItem(DEMO_IDS_KEY)
+      localStorage.setItem(DEMO_BOOTSTRAP_KEY, '1')
+    }
 
     ;(async () => {
       let source = goals

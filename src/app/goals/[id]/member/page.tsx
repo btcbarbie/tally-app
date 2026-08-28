@@ -260,7 +260,44 @@ export default function MemberPage() {
     try {
       const res = await fetch(`/api/goals/${goalId}/member-status?memberToken=${memberToken}`)
       const data = await res.json()
-      if (!res.ok) { setNotFound(true); setLoading(false); return }
+      if (!res.ok) {
+        // A definite 404 means this browser is holding a membership token
+        // that no longer resolves — almost always a stale demo session left
+        // behind after the demo data was rebuilt server-side. Drop the dead
+        // token so it stops resurfacing as a broken card on the homepage.
+        if (res.status === 404 && typeof window !== 'undefined') {
+          localStorage.removeItem(`tally_member_${goalId}`)
+          localStorage.removeItem(`tally_memberId_${goalId}`)
+
+          let recordedDemoIds: string[] = []
+          try {
+            recordedDemoIds = JSON.parse(localStorage.getItem('tally_demo_goal_ids') || '[]')
+          } catch {
+            recordedDemoIds = []
+          }
+          const isDemoGoal =
+            goalId === 'goal-church-retreat' ||
+            goalId === 'goal-wedding-tolu' ||
+            recordedDemoIds.includes(goalId)
+
+          if (isDemoGoal) {
+            // Clear every stale demo key (the recorded pair plus the legacy
+            // fixed ids), reset the bootstrap flag, and send the visitor
+            // home — where a fresh, working set of demo goals is created
+            // automatically.
+            for (const id of [...recordedDemoIds, 'goal-church-retreat', 'goal-wedding-tolu']) {
+              localStorage.removeItem(`tally_admin_${id}`)
+              localStorage.removeItem(`tally_member_${id}`)
+              localStorage.removeItem(`tally_memberId_${id}`)
+            }
+            localStorage.removeItem('tally_demo_bootstrapped_v3')
+            localStorage.removeItem('tally_demo_goal_ids')
+            window.location.href = '/'
+            return
+          }
+        }
+        setNotFound(true); setLoading(false); return
+      }
       setGoal(data.goal)
       setFs(data.financialState)
       setMember(data.member)
