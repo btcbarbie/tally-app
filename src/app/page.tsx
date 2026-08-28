@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { buildGoalFinancialState } from '@/lib/finance'
 import { Plus, Sparkles } from 'lucide-react'
-import DemoSessionBootstrap from './DemoSessionBootstrap'
 import MyGoalsList from './MyGoalsList'
 
 // This page reads directly from the database with no dynamic API (no
@@ -33,7 +32,6 @@ export default async function HomePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)' }}>
-      <DemoSessionBootstrap />
       {/* Nav */}
       <nav className="nav">
         <div className="container nav-inner">
