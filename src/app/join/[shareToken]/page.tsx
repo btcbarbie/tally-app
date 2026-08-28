@@ -16,6 +16,7 @@ interface Goal {
   paymentType: string
   equalAmount?: number
   expectedParticipants: number
+  memberCount?: number
   status: string
   bankName?: string
   accountName?: string
@@ -181,6 +182,7 @@ export default function JoinPage() {
   }
 
   const contribution = goal.contributionType === 'EQUAL' && goal.equalAmount ? formatCurrency(goal.equalAmount) : null
+  const isFull = goal.expectedParticipants > 0 && (goal.memberCount ?? 0) >= goal.expectedParticipants
 
   /* ── Already the admin of this goal ── */
   if (ownAdminToken) {
@@ -337,7 +339,7 @@ export default function JoinPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: contribution ? '16px' : '0' }}>
             {[
               { icon: <Target size={15} color="var(--color-forest)" />, label: 'Target', value: formatCurrency(goal.targetAmount) },
-              { icon: <Users size={15} color="var(--color-forest)" />, label: 'Members', value: `${goal.expectedParticipants}` },
+              { icon: <Users size={15} color="var(--color-forest)" />, label: 'Members', value: goal.expectedParticipants > 0 ? `${goal.memberCount ?? 0} / ${goal.expectedParticipants}` : `${goal.memberCount ?? 0}` },
               { icon: <Calendar size={15} color="var(--color-forest)" />, label: 'Deadline', value: new Date(goal.deadline).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' }) },
             ].map(s => (
               <div key={s.label} style={{ textAlign: 'center', padding: '12px 6px', background: 'var(--color-surface-2)', borderRadius: '10px' }}>
@@ -372,6 +374,13 @@ export default function JoinPage() {
           <p style={{ fontSize: '13px', color: 'var(--color-muted)', marginBottom: '18px' }}>
             Enter your name to commit. You don&apos;t need to pay right now — you&apos;ll get payment details after joining.
           </p>
+
+          {isFull && (
+            <div style={{ background: '#fef3c7', color: '#92400e', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px', lineHeight: '1.5' }}>
+              This group is full — all {goal.expectedParticipants} contributor spots are taken. Ask the
+              admin to raise the limit if you should be included.
+            </div>
+          )}
 
           {error && (
             <div style={{ background: '#fee2e2', color: '#dc2626', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px' }}>
@@ -410,10 +419,10 @@ export default function JoinPage() {
             <button
               className="btn btn-primary btn-lg"
               onClick={handleJoin}
-              disabled={joining}
+              disabled={joining || isFull}
               style={{ width: '100%', justifyContent: 'center' }}
             >
-              {joining ? 'Joining...' : <>Join {contribution ? `& Commit ${contribution}` : 'Goal'} <ArrowRight size={16} /></>}
+              {joining ? 'Joining...' : isFull ? 'Group is full' : <>Join {contribution ? `& Commit ${contribution}` : 'Goal'} <ArrowRight size={16} /></>}
             </button>
 
             <p style={{ fontSize: '12px', color: 'var(--color-muted)', textAlign: 'center', lineHeight: '1.5' }}>

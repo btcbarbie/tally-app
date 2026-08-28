@@ -114,7 +114,7 @@ export default async function HomePage() {
             {[
               { n: '1', t: 'Create a goal', d: 'Set your target amount, deadline, and how much each person contributes.' },
               { n: '2', t: 'Share one link', d: 'Members join in seconds — no app to install, no account to create.' },
-              { n: '3', t: 'Let AI do the chasing', d: 'Automatic payment tracking, receipt verification, smart reminders, and a live forecast.' },
+              { n: '3', t: 'Let Tally do the chasing', d: 'Automatic payment tracking, receipt verification, smart reminders, and a live forecast.' },
             ].map((s) => (
               <div key={s.n} className="card" style={{ padding: '20px' }}>
                 <div

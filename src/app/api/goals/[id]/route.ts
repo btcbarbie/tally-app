@@ -31,11 +31,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params
     const body = await req.json()
-    const { status, extendedDeadline, adminToken, bankName, accountName, accountNumber, paymentNote } = body
+    const { status, extendedDeadline, adminToken, bankName, accountName, accountNumber, paymentNote, expectedParticipants } = body
 
     const goal = await prisma.goal.findUnique({ where: { id } })
     if (!goal) return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
     if (adminToken && goal.adminToken !== adminToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+
+    let nextExpectedParticipants: number | undefined
+    if (expectedParticipants !== undefined) {
+      nextExpectedParticipants = Number(expectedParticipants)
+      if (!Number.isInteger(nextExpectedParticipants) || nextExpectedParticipants < 1) {
+        return NextResponse.json({ error: 'Expected contributors must be a whole number of at least 1' }, { status: 400 })
+      }
+      const memberCount = await prisma.member.count({ where: { goalId: id } })
+      if (nextExpectedParticipants < memberCount) {
+        return NextResponse.json({ error: `This goal already has ${memberCount} contributors — the limit can't be set below that.` }, { status: 400 })
+      }
+    }
 
     if (
       (bankName !== undefined && !String(bankName).trim()) ||
@@ -58,6 +70,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ...(accountName !== undefined && { accountName: accountName ? String(accountName).trim() : null }),
         ...(accountNumber !== undefined && { accountNumber: accountNumber ? String(accountNumber).trim() : null }),
         ...(paymentNote !== undefined && { paymentNote: paymentNote ? String(paymentNote).trim() : null }),
+        ...(nextExpectedParticipants !== undefined && { expectedParticipants: nextExpectedParticipants }),
       },
     })
 

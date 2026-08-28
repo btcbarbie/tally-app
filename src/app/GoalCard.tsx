@@ -23,7 +23,7 @@ interface GoalCardProps {
     totalMembers: number
     riskStatus: string
   }
-  isSample?: boolean
+  sampleLabel?: string
 }
 
 function formatCurrency(n: number) {
@@ -55,7 +55,7 @@ function getMilestoneMessage(percent: number): string | null {
   return null
 }
 
-export default function GoalCard({ goal, financialState: fs, isSample = false }: GoalCardProps) {
+export default function GoalCard({ goal, financialState: fs, sampleLabel }: GoalCardProps) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [isMember, setIsMember] = useState(false)
   const [memberToken, setMemberToken] = useState<string | null>(null)
@@ -154,9 +154,9 @@ export default function GoalCard({ goal, financialState: fs, isSample = false }:
           )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', marginLeft: '12px', flexShrink: 0 }}>
-          {isSample && (
-            <span className="badge badge-gray" style={{ letterSpacing: '0.4px' }}>
-              Sample
+          {sampleLabel && (
+            <span className="badge badge-gray" style={{ letterSpacing: '0.4px', whiteSpace: 'nowrap' }}>
+              {sampleLabel}
             </span>
           )}
           <span className={`badge ${statusBadge.cls}`}>

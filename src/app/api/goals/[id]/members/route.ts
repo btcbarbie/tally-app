@@ -36,6 +36,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const existing = await prisma.member.findFirst({ where: { goalId: id, name: name.trim() } })
     if (existing) return NextResponse.json({ error: 'A member with this name already exists' }, { status: 400 })
 
+    // Enforce the contributor limit set when the goal was created. A limit of
+    // 0 means "no limit". The admin can raise it in Goal Settings.
+    if (goal.expectedParticipants > 0) {
+      const memberCount = await prisma.member.count({ where: { goalId: id } })
+      if (memberCount >= goal.expectedParticipants) {
+        return NextResponse.json(
+          { error: `This group is full — all ${goal.expectedParticipants} contributor spots are taken. Ask the admin to raise the limit in Goal Settings.` },
+          { status: 409 },
+        )
+      }
+    }
+
     const amount = goal.contributionType === 'EQUAL'
       ? (goal.equalAmount ?? 0)
       : Number(committedAmount ?? 0)

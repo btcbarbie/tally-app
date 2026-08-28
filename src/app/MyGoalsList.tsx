@@ -92,6 +92,7 @@ function toGoalListItem(g: RawGoal): GoalListItem {
 export default function MyGoalsList({ goals }: { goals: GoalListItem[] }) {
   const [myGoals, setMyGoals] = useState<GoalListItem[] | null>(null)
   const [demoIds, setDemoIds] = useState<string[]>([])
+  const [demoRoles, setDemoRoles] = useState<Record<string, 'admin' | 'member'>>({})
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -174,13 +175,45 @@ export default function MyGoalsList({ goals }: { goals: GoalListItem[] }) {
       } catch {
         storedDemoIds = []
       }
-      const resolvedDemoIds = mine
-        .filter((g) => storedDemoIds.includes(g.id) || DEMO_TITLES.includes(g.title))
-        .map((g) => g.id)
+
+      // Collapse any leftover demo goals from earlier bootstraps down to a
+      // single admin sample + a single member sample. Prefer the pair
+      // recorded in DEMO_IDS_KEY; otherwise keep the first of each kind.
+      // Stale tokens for the dropped copies are removed so they don't
+      // reappear on the next visit.
+      const preferred = new Set(storedDemoIds)
+      const isDemo = (g: GoalListItem) => DEMO_TITLES.includes(g.title)
+      const keepOne = (candidates: GoalListItem[]): GoalListItem[] => {
+        if (candidates.length <= 1) return candidates
+        const keeper = candidates.find((g) => preferred.has(g.id)) ?? candidates[0]
+        for (const g of candidates) {
+          if (g.id === keeper.id) continue
+          localStorage.removeItem(`tally_admin_${g.id}`)
+          localStorage.removeItem(`tally_member_${g.id}`)
+          localStorage.removeItem(`tally_memberId_${g.id}`)
+        }
+        return [keeper]
+      }
+      const demoAdminGoals = keepOne(mine.filter((g) => isDemo(g) && localStorage.getItem(`tally_admin_${g.id}`)))
+      const demoMemberGoals = keepOne(mine.filter((g) => isDemo(g) && localStorage.getItem(`tally_member_${g.id}`)))
+      const keptDemoIds = [...demoAdminGoals, ...demoMemberGoals].map((g) => g.id)
+
+      // Final list: every real goal the browser owns, plus the one kept
+      // admin sample and the one kept member sample.
+      const visible = mine.filter((g) => !isDemo(g) || keptDemoIds.includes(g.id))
+
+      if (keptDemoIds.length > 0) {
+        localStorage.setItem(DEMO_IDS_KEY, JSON.stringify(keptDemoIds))
+      }
+
+      const roles: Record<string, 'admin' | 'member'> = {}
+      demoAdminGoals.forEach((g) => { roles[g.id] = 'admin' })
+      demoMemberGoals.forEach((g) => { roles[g.id] = 'member' })
 
       if (!cancelled) {
-        setDemoIds(resolvedDemoIds)
-        setMyGoals(mine)
+        setDemoIds(keptDemoIds)
+        setDemoRoles(roles)
+        setMyGoals(visible)
       }
     })()
 
@@ -279,7 +312,13 @@ export default function MyGoalsList({ goals }: { goals: GoalListItem[] }) {
               shareToken: goal.shareToken,
             }}
             financialState={goal.financialState}
-            isSample={demoIds.includes(goal.id)}
+            sampleLabel={
+              demoIds.includes(goal.id)
+                ? demoRoles[goal.id] === 'admin'
+                  ? 'Admin Sample'
+                  : 'Member Sample'
+                : undefined
+            }
           />
         ))}
       </div>

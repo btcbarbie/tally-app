@@ -18,13 +18,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ shar
         equalAmount: true,
         expectedParticipants: true,
         status: true,
+        _count: { select: { members: true } },
       },
     })
 
     if (!goal) return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
     if (goal.joinType === 'INVITE_ONLY') return NextResponse.json({ error: 'This goal is invite-only' }, { status: 403 })
 
-    return NextResponse.json({ goal })
+    const { _count, ...rest } = goal
+    return NextResponse.json({ goal: { ...rest, memberCount: _count.members } })
   } catch (e) {
     console.error(e)
     return NextResponse.json({ error: 'Failed to fetch goal' }, { status: 500 })

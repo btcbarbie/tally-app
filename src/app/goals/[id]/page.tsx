@@ -212,6 +212,12 @@ export default function GoalOverviewPage() {
   const [paymentSaving, setPaymentSaving] = useState(false)
   const [paymentError, setPaymentError] = useState('')
 
+  // Contributor limit editing
+  const [editingLimit, setEditingLimit] = useState(false)
+  const [limitValue, setLimitValue] = useState('')
+  const [limitSaving, setLimitSaving] = useState(false)
+  const [limitError, setLimitError] = useState('')
+
   // Copied share link
   const [linkCopied, setLinkCopied] = useState(false)
 
@@ -510,6 +516,44 @@ export default function GoalOverviewPage() {
       setPaymentError(e instanceof Error ? e.message : 'Failed to update payment details')
     } finally {
       setPaymentSaving(false)
+    }
+  }
+
+  const startEditLimit = () => {
+    setLimitValue(String(goal?.expectedParticipants ?? ''))
+    setLimitError('')
+    setEditingLimit(true)
+  }
+
+  const saveContributorLimit = async () => {
+    const currentMembers = fs?.totalMembers ?? 0
+    const n = Number(limitValue)
+    if (!Number.isInteger(n) || n < 1) {
+      setLimitError('Enter a whole number of at least 1.')
+      return
+    }
+    if (n < currentMembers) {
+      setLimitError(`You already have ${currentMembers} contributors — the limit can't be lower.`)
+      return
+    }
+    setLimitSaving(true)
+    setLimitError('')
+    try {
+      const res = await fetch(`/api/goals/${goalId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expectedParticipants: n, adminToken }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to update the contributor limit')
+      }
+      setEditingLimit(false)
+      fetchGoal()
+    } catch (e) {
+      setLimitError(e instanceof Error ? e.message : 'Failed to update the contributor limit')
+    } finally {
+      setLimitSaving(false)
     }
   }
 
@@ -1073,6 +1117,48 @@ export default function GoalOverviewPage() {
                             {paymentSaving ? 'Saving...' : 'Save Payment Details'}
                           </button>
                           <button className="btn btn-ghost btn-sm" onClick={() => setEditingPayment(false)} disabled={paymentSaving}>
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Contributor Limit */}
+                  <div style={{ paddingBottom: '12px', borderBottom: '1px solid var(--color-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '700' }}>Contributor Limit</span>
+                      {!editingLimit && (
+                        <button className="btn btn-ghost btn-sm" onClick={startEditLimit}>Edit</button>
+                      )}
+                    </div>
+                    {!editingLimit ? (
+                      <p style={{ fontSize: '13px', color: 'var(--color-muted)', marginTop: '6px' }}>
+                        {fs.totalMembers} of {goal.expectedParticipants} spots taken. New contributors can&apos;t join once the group is full.
+                      </p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                        {limitError && (
+                          <div style={{ background: '#fee2e2', color: '#dc2626', padding: '8px 12px', borderRadius: '8px', fontSize: '13px' }}>
+                            {limitError}
+                          </div>
+                        )}
+                        <div className="form-group">
+                          <label className="form-label">Maximum number of contributors</label>
+                          <input
+                            className="form-input"
+                            type="number"
+                            min={fs.totalMembers || 1}
+                            value={limitValue}
+                            onChange={(e) => setLimitValue(e.target.value.replace(/\D/g, ''))}
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button className="btn btn-primary btn-sm" onClick={saveContributorLimit} disabled={limitSaving}>
+                            {limitSaving ? 'Saving...' : 'Save Limit'}
+                          </button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setEditingLimit(false)} disabled={limitSaving}>
                             Cancel
                           </button>
                         </div>
