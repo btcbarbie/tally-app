@@ -7,7 +7,7 @@ import ConfirmDialog from '../../ConfirmDialog'
 import { copyToClipboard } from '@/lib/clipboard'
 import {
   ArrowLeft, Sparkles, Users, TrendingUp, Calendar, Target, Copy, Check,
-  Send, RefreshCw, Bell, AlertTriangle, ChevronRight,
+  Send, RefreshCw, Bell, AlertTriangle, ChevronRight, ChevronDown,
   CheckCircle, Clock, AlertCircle, XCircle, Award, Zap, MessageSquare, Trash2, Building2,
   Wallet, Pencil,
 } from 'lucide-react'
@@ -165,6 +165,7 @@ export default function GoalOverviewPage() {
     overallScore?: 'STRONG' | 'MODERATE' | 'AT_RISK'
   } | null>(null)
   const [planCheckLoading, setPlanCheckLoading] = useState(false)
+  const [planCheckOpen, setPlanCheckOpen] = useState(true)
 
   // Chat
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([])
@@ -735,27 +736,46 @@ export default function GoalOverviewPage() {
         {/* AI Plan Check (new goals) */}
         {isNew && (
           <div className="ai-card animate-fade-in" style={{ marginBottom: '24px' }}>
-            <div className="ai-label"><Sparkles size={12} /> AI Plan Check</div>
+            {planCheck && !planCheckLoading ? (
+              <button
+                type="button"
+                onClick={() => setPlanCheckOpen((v) => !v)}
+                aria-expanded={planCheckOpen}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  marginBottom: planCheckOpen ? '8px' : 0, textAlign: 'left',
+                }}
+              >
+                <span className="ai-label" style={{ margin: 0 }}><Sparkles size={12} /> AI Plan Check</span>
+                {planCheck.overallScore && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: '100px',
+                    fontSize: '11px', fontWeight: '800',
+                    background: planCheck.overallScore === 'STRONG' ? '#d1fae5' : planCheck.overallScore === 'AT_RISK' ? '#fee2e2' : '#fef3c7',
+                    color: planCheck.overallScore === 'STRONG' ? '#065f46' : planCheck.overallScore === 'AT_RISK' ? '#dc2626' : '#92400e',
+                  }}>
+                    {planCheck.overallScore === 'STRONG' ? '✓ Strong' : planCheck.overallScore === 'AT_RISK' ? '⚠ Needs Attention' : '~ Moderate'}
+                  </span>
+                )}
+                <ChevronDown
+                  size={16}
+                  style={{
+                    marginLeft: 'auto', color: 'var(--color-amber)', flexShrink: 0,
+                    transform: planCheckOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease',
+                  }}
+                />
+              </button>
+            ) : (
+              <div className="ai-label"><Sparkles size={12} /> AI Plan Check</div>
+            )}
             {planCheckLoading ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <RefreshCw size={14} className="spin" style={{ color: 'var(--color-amber)' }} />
                 <p style={{ fontSize: '14px', color: 'var(--color-charcoal-mid)' }}>Analyzing your contribution plan...</p>
               </div>
             ) : planCheck ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {/* Score badge */}
-                {planCheck.overallScore && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '5px',
-                      padding: '4px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: '800',
-                      background: planCheck.overallScore === 'STRONG' ? '#d1fae5' : planCheck.overallScore === 'AT_RISK' ? '#fee2e2' : '#fef3c7',
-                      color: planCheck.overallScore === 'STRONG' ? '#065f46' : planCheck.overallScore === 'AT_RISK' ? '#dc2626' : '#92400e',
-                    }}>
-                      {planCheck.overallScore === 'STRONG' ? '✓ Plan Looks Strong' : planCheck.overallScore === 'AT_RISK' ? '⚠ Plan Needs Attention' : '~ Plan is Moderate'}
-                    </span>
-                  </div>
-                )}
+              <div style={{ display: planCheckOpen ? 'flex' : 'none', flexDirection: 'column', gap: '14px' }}>
                 <p style={{ fontSize: '15px', color: 'var(--color-charcoal)', lineHeight: '1.6' }}>
                   {planCheck.message}
                 </p>
