@@ -77,8 +77,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const goal = await prisma.goal.findUnique({ where: { id } })
     if (!goal) return NextResponse.json({ error: 'Goal not found' }, { status: 404 })
 
-    // Validate admin token if provided or enforce check
-    if (adminTokenParam && goal.adminToken !== adminTokenParam) {
+    // Only the admin holding the correct token may delete the goal
+    if (goal.adminToken !== adminTokenParam) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

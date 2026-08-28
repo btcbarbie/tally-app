@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import GoalCard from './GoalCard'
 import { prisma } from '@/lib/prisma'
 import { buildGoalFinancialState } from '@/lib/finance'
-import { Plus, Sparkles, Target } from 'lucide-react'
+import { Plus, Sparkles } from 'lucide-react'
 import DemoSessionBootstrap from './DemoSessionBootstrap'
+import MyGoalsList from './MyGoalsList'
 
 // This page reads directly from the database with no dynamic API (no
 // cookies/headers/searchParams), so Next.js can statically prerender it at
@@ -11,30 +11,6 @@ import DemoSessionBootstrap from './DemoSessionBootstrap'
 // in an empty goals list forever. Force per-request rendering so it always
 // reflects the live database.
 export const dynamic = 'force-dynamic'
-
-function getStatusBadge(status: string, riskStatus: string) {
-  if (status === 'TARGET_REACHED') return { label: 'Goal Achieved! 🎉', cls: 'badge-green' }
-  if (status === 'CLOSED') return { label: 'Closed', cls: 'badge-gray' }
-  if (status === 'DEADLINE_REACHED') return { label: 'Deadline Reached', cls: 'badge-amber' }
-  if (status === 'EXTENDED') return { label: 'Extended', cls: 'badge-blue' }
-  if (riskStatus === 'AT_RISK') return { label: 'At Risk', cls: 'badge-red' }
-  if (riskStatus === 'ON_TRACK') return { label: 'On Track', cls: 'badge-green' }
-  return { label: 'Active', cls: 'badge-forest' }
-}
-
-function getProgressColor(percent: number, riskStatus: string) {
-  if (percent >= 100) return 'progress-fill'
-  if (riskStatus === 'AT_RISK') return 'progress-fill progress-fill-amber'
-  return 'progress-fill'
-}
-
-function getMilestoneMessage(percent: number): string | null {
-  if (percent >= 100) return '🎉 Goal Achieved!'
-  if (percent >= 75) return '🚀 Almost there!'
-  if (percent >= 50) return '⚡ Halfway there!'
-  if (percent >= 25) return '✨ Great start!'
-  return null
-}
 
 async function getGoals() {
   try {
@@ -115,76 +91,29 @@ export default async function HomePage() {
           </p>
         </div>
 
-        {/* Goal Grid */}
-        {goals.length === 0 ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '80px 24px',
-              background: 'var(--color-surface)',
-              borderRadius: 'var(--radius-xl)',
-              border: '1px solid var(--color-border)',
-            }}
-          >
-            <div
-              style={{
-                width: '64px',
-                height: '64px',
-                background: 'var(--color-forest-subtle)',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 20px',
-              }}
-            >
-              <Target size={28} color="var(--color-forest)" />
-            </div>
-            <h2 style={{ fontSize: '22px', fontWeight: '700', marginBottom: '8px' }}>No shared goals yet</h2>
-            <p style={{ color: 'var(--color-muted)', marginBottom: '24px' }}>
-              Create your first group financial goal to get started.
-            </p>
-            <Link href="/goals/create" className="btn btn-primary">
-              <Plus size={16} />
-              Create Your First Goal
-            </Link>
-          </div>
-        ) : (
-          <div
-            className="goals-grid"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-              gap: '20px',
-            }}
-          >
-            {goals.map((goal) => {
-              const fs = buildGoalFinancialState(goal)
-              return (
-                <GoalCard
-                  key={goal.id}
-                  goal={{
-                    id: goal.id,
-                    title: goal.title,
-                    description: goal.description,
-                    targetAmount: goal.targetAmount,
-                    deadline: goal.deadline,
-                    status: goal.status,
-                    shareToken: goal.shareToken,
-                  }}
-                  financialState={{
-                    totalCollected: fs.totalCollected,
-                    totalOutstanding: fs.totalOutstanding,
-                    percentFunded: fs.percentFunded,
-                    paidCount: fs.paidCount,
-                    totalMembers: fs.totalMembers,
-                    riskStatus: fs.riskStatus,
-                  }}
-                />
-              )
-            })}
-          </div>
-        )}
+        {/* Goal Grid — filtered client-side to just the goals this browser has a token for */}
+        <MyGoalsList
+          goals={goals.map((goal) => {
+            const fs = buildGoalFinancialState(goal)
+            return {
+              id: goal.id,
+              title: goal.title,
+              description: goal.description,
+              targetAmount: goal.targetAmount,
+              deadline: goal.deadline,
+              status: goal.status,
+              shareToken: goal.shareToken,
+              financialState: {
+                totalCollected: fs.totalCollected,
+                totalOutstanding: fs.totalOutstanding,
+                percentFunded: fs.percentFunded,
+                paidCount: fs.paidCount,
+                totalMembers: fs.totalMembers,
+                riskStatus: fs.riskStatus,
+              },
+            }
+          })}
+        />
 
         {/* Create CTA */}
         <div
