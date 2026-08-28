@@ -5,6 +5,13 @@ import { buildGoalFinancialState } from '@/lib/finance'
 import { Plus, Sparkles, Target } from 'lucide-react'
 import DemoSessionBootstrap from './DemoSessionBootstrap'
 
+// This page reads directly from the database with no dynamic API (no
+// cookies/headers/searchParams), so Next.js can statically prerender it at
+// build time — which happens before the production volume is mounted, baking
+// in an empty goals list forever. Force per-request rendering so it always
+// reflects the live database.
+export const dynamic = 'force-dynamic'
+
 function getStatusBadge(status: string, riskStatus: string) {
   if (status === 'TARGET_REACHED') return { label: 'Goal Achieved! 🎉', cls: 'badge-green' }
   if (status === 'CLOSED') return { label: 'Closed', cls: 'badge-gray' }
