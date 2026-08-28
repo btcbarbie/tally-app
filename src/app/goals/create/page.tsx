@@ -6,7 +6,6 @@ import {
   Target,
   Calendar,
   Users,
-  DollarSign,
   ArrowRight,
   ArrowLeft,
   Check,
@@ -222,7 +221,6 @@ export default function CreateGoalPage() {
               <div className="form-grid-2">
                 <div className="form-group">
                   <label className="form-label">
-                    <DollarSign size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
                     Target Amount (₦)
                   </label>
                   <input
