@@ -6,7 +6,7 @@ import Link from 'next/link'
 import ConfirmDialog from '../../ConfirmDialog'
 import {
   ArrowLeft, Sparkles, Users, TrendingUp, Calendar, Target, Copy, Check,
-  Send, UploadCloud, RefreshCw, Bell, AlertTriangle, ChevronRight,
+  Send, RefreshCw, Bell, AlertTriangle, ChevronRight,
   CheckCircle, Clock, AlertCircle, XCircle, Award, Zap, MessageSquare, Trash2, Building2,
   Wallet, Pencil,
 } from 'lucide-react'
@@ -191,23 +191,14 @@ export default function GoalOverviewPage() {
   const [budgetSaving, setBudgetSaving] = useState(false)
   const [budgetError, setBudgetError] = useState('')
 
-  // Receipt
-  const [receiptFile, setReceiptFile] = useState<File | null>(null)
-  const [receiptText, setReceiptText] = useState('')
-  const [receiptMemberId, setReceiptMemberId] = useState('')
-  const [receiptLoading, setReceiptLoading] = useState(false)
-  const [receiptResult, setReceiptResult] = useState<{
-    extraction: {
-      extractedAmount?: number; extractedPayer?: string; extractedRef?: string;
-      extractedDate?: string; confidence: number; flags: string[]; status: string; summary: string
-    };
-    expectedAmount: number; memberName: string
-  } | null>(null)
-
   // Add member
   const [newMemberName, setNewMemberName] = useState('')
   const [newMemberAmount, setNewMemberAmount] = useState('')
   const [addingMember, setAddingMember] = useState(false)
+  const [addedMemberInfo, setAddedMemberInfo] = useState<string | null>(null)
+
+  // Per-contributor payment history (Contributors tab)
+  const [expandedHistoryMemberId, setExpandedHistoryMemberId] = useState<string | null>(null)
 
   // Lifecycle
   const [extendDate, setExtendDate] = useState('')
@@ -399,42 +390,28 @@ export default function GoalOverviewPage() {
     }
   }
 
-  const uploadReceipt = async () => {
-    if (!receiptMemberId) return
-    setReceiptLoading(true)
-    setReceiptResult(null)
-    try {
-      const formData = new FormData()
-      formData.append('memberId', receiptMemberId)
-      formData.append('goalId', goalId)
-      if (receiptFile) formData.append('file', receiptFile)
-      if (receiptText) formData.append('textDescription', receiptText)
-
-      const res = await fetch('/api/receipts', { method: 'POST', body: formData })
-      const data = await res.json()
-      setReceiptResult(data)
-      fetchGoal()
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setReceiptLoading(false)
-    }
-  }
-
   const addMember = async () => {
     if (!newMemberName.trim()) return
     setAddingMember(true)
+    setAddedMemberInfo(null)
     try {
-      await fetch(`/api/goals/${goalId}/members`, {
+      const res = await fetch(`/api/goals/${goalId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newMemberName, committedAmount: Number(newMemberAmount) }),
       })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(data.error || 'Failed to add contributor')
+        return
+      }
+      setAddedMemberInfo(data.member.name)
       setNewMemberName('')
       setNewMemberAmount('')
       fetchGoal()
     } catch (e) {
       console.error(e)
+      alert('Failed to add contributor')
     } finally {
       setAddingMember(false)
     }
@@ -584,15 +561,6 @@ export default function GoalOverviewPage() {
     } finally {
       setConfirmLoading(null)
     }
-  }
-
-  const getStatusColor = (status: string) => {
-    if (status === 'LIKELY_MATCH') return 'var(--color-success)'
-    if (status === 'POSSIBLE_DUPLICATE') return 'var(--color-danger)'
-    if (status === 'AMOUNT_MISMATCH') return 'var(--color-warning)'
-    if (status === 'NEEDS_REVIEW') return 'var(--color-amber)'
-    if (status === 'NOT_A_RECEIPT') return 'var(--color-danger)'
-    return 'var(--color-muted)'
   }
 
   const quickQuestions = [
@@ -1153,6 +1121,13 @@ export default function GoalOverviewPage() {
                     {addingMember ? 'Adding...' : '+ Add'}
                   </button>
                 </div>
+                {addedMemberInfo && (
+                  <p style={{ marginTop: '12px', fontSize: '13px', color: 'var(--color-success)', lineHeight: '1.5' }}>
+                    <strong>{addedMemberInfo}</strong> added. To access their own dashboard, they should open the invite link, click{' '}
+                    <strong>&quot;Already joined? Recover your access&quot;</strong>, and enter their name exactly as{' '}
+                    <strong>{addedMemberInfo}</strong>.
+                  </p>
+                )}
               </div>
             )}
 
@@ -1191,33 +1166,51 @@ export default function GoalOverviewPage() {
                     : c.status === 'PARTIAL' ? 'PARTIAL'
                     : hasPendingReceipt ? 'PAYMENT_SUBMITTED'
                     : 'NOT_YET_PAID'
+                  const memberPayments = (goal.payments ?? [])
+                    .filter(p => p.memberId === c.memberId && p.verificationStatus === 'CONFIRMED')
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  const historyOpen = expandedHistoryMemberId === c.member.id
                   return (
-                    <div key={c.id} className="contributor-row" style={{ padding: '16px 20px' }}>
-                      <div className="avatar">{getInitials(c.member.name)}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '2px' }}>{c.member.name}</div>
-                        <div style={{ fontSize: '13px', color: 'var(--color-muted)' }}>
-                          Committed: {formatCurrency(c.committedAmount)}
-                          {c.paidAmount > 0 && ` · Paid: ${formatCurrency(c.paidAmount)}`}
-                          {c.outstandingAmount > 0 && ` · Owes: ${formatCurrency(c.outstandingAmount)}`}
+                    <div key={c.id}>
+                      <div className="contributor-row" style={{ padding: '16px 20px' }}>
+                        <div className="avatar">{getInitials(c.member.name)}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '2px' }}>{c.member.name}</div>
+                          <div style={{ fontSize: '13px', color: 'var(--color-muted)' }}>
+                            Committed: {formatCurrency(c.committedAmount)}
+                            {c.paidAmount > 0 && ` · Paid: ${formatCurrency(c.paidAmount)}`}
+                            {c.outstandingAmount > 0 && ` · Owes: ${formatCurrency(c.outstandingAmount)}`}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                          {/* Explicit 5-state status display */}
+                          {displayStatus === 'PAID' && <span className="badge badge-green"><CheckCircle size={11} /> Paid</span>}
+                          {displayStatus === 'PARTIAL' && <span className="badge badge-amber"><Clock size={11} /> Partial</span>}
+                          {displayStatus === 'PAYMENT_SUBMITTED' && <span className="badge badge-blue" style={{ whiteSpace: 'nowrap' }}><Clock size={11} /> Needs Review</span>}
+                          {displayStatus === 'NOT_YET_PAID' && <span className="badge badge-gray"><AlertCircle size={11} /> Not Paid</span>}
+                          {memberPayments.length > 0 && (
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              style={{ fontSize: '11px', padding: '4px 8px' }}
+                              onClick={() => setExpandedHistoryMemberId(historyOpen ? null : c.member.id)}
+                            >
+                              {historyOpen ? 'Hide' : 'View'} Payments ({memberPayments.length})
+                            </button>
+                          )}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                        {/* Explicit 5-state status display */}
-                        {displayStatus === 'PAID' && <span className="badge badge-green"><CheckCircle size={11} /> Paid</span>}
-                        {displayStatus === 'PARTIAL' && <span className="badge badge-amber"><Clock size={11} /> Partial</span>}
-                        {displayStatus === 'PAYMENT_SUBMITTED' && <span className="badge badge-blue" style={{ whiteSpace: 'nowrap' }}><Clock size={11} /> Needs Review</span>}
-                        {displayStatus === 'NOT_YET_PAID' && <span className="badge badge-gray"><AlertCircle size={11} /> Not Paid</span>}
-                        {isAdmin && c.status !== 'PAID' && (
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            style={{ fontSize: '11px', padding: '4px 8px' }}
-                            onClick={() => { setReceiptMemberId(c.member.id); }}
-                          >
-                            AI Payment Check
-                          </button>
-                        )}
-                      </div>
+                      {historyOpen && (
+                        <div style={{ padding: '0 20px 16px 68px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {memberPayments.map((p) => (
+                            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '8px 12px', background: 'var(--color-surface-2)', borderRadius: '8px' }}>
+                              <span style={{ color: 'var(--color-muted)' }}>
+                                {new Date(p.date).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                              <span style={{ fontWeight: '700' }}>{formatCurrency(p.amount)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )
                 })
@@ -1319,113 +1312,6 @@ export default function GoalOverviewPage() {
               </div>
             )}
 
-            {/* Receipt Upload in Contributors tab */}
-            {isAdmin && (
-              <div className="card" style={{ padding: '24px', marginTop: '20px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <UploadCloud size={18} color="var(--color-forest)" /> AI Payment Check
-                </h3>
-                <p style={{ fontSize: '13px', color: 'var(--color-muted)', marginBottom: '16px' }}>
-                  Upload a member&apos;s payment receipt — AI will extract the details and flag anything that needs review. Admin confirms the final payment.
-                </p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div className="form-group">
-                    <label className="form-label">Select Contributor</label>
-                    <select className="form-input" value={receiptMemberId} onChange={(e) => setReceiptMemberId(e.target.value)}>
-                      <option value="">Choose contributor...</option>
-                      {goal.commitments.filter((c) => c.status !== 'PAID').map((c) => (
-                        <option key={c.member.id} value={c.member.id}>{c.member.name} — owes {formatCurrency(c.outstandingAmount)}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="upload-zone" onClick={() => document.getElementById('receipt-input')?.click()}>
-                    <UploadCloud size={24} color="var(--color-muted)" style={{ margin: '0 auto 8px' }} />
-                    <p style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-charcoal-mid)', marginBottom: '4px' }}>
-                      {receiptFile ? receiptFile.name : 'Upload receipt image'}
-                    </p>
-                    <p style={{ fontSize: '12px', color: 'var(--color-muted)' }}>PNG, JPG up to 5MB</p>
-                    <input id="receipt-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Or describe the payment <span className="form-label-optional">(text)</span></label>
-                    <textarea
-                      className="form-input"
-                      rows={2}
-                      placeholder="e.g. Transfer of ₦20,000 from Musa Aliyu on 24/08/2026, Ref: TXN123456"
-                      value={receiptText}
-                      onChange={(e) => setReceiptText(e.target.value)}
-                    />
-                  </div>
-
-                  <button
-                    className="btn btn-primary"
-                    onClick={uploadReceipt}
-                    disabled={receiptLoading || !receiptMemberId || (!receiptFile && !receiptText)}
-                  >
-                    {receiptLoading ? <><RefreshCw size={14} /> Verifying...</> : <><Sparkles size={14} /> Verify with AI</>}
-                  </button>
-                </div>
-
-                {/* Receipt Result */}
-                {receiptResult && (
-                  <div
-                    className="animate-fade-in"
-                    style={{
-                      marginTop: '20px',
-                      padding: '16px',
-                      background: 'var(--color-surface-2)',
-                      borderRadius: 'var(--radius-md)',
-                      border: `1px solid ${receiptResult.extraction.status === 'LIKELY_MATCH' ? '#bbf7d0' : '#fde68a'}`,
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: '700', color: getStatusColor(receiptResult.extraction.status) }}>
-                        {receiptResult.extraction.status.replace(/_/g, ' ')}
-                      </span>
-                      <span style={{ fontSize: '12px', color: 'var(--color-muted)' }}>
-                        {Math.round(receiptResult.extraction.confidence * 100)}% confidence
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '14px', color: 'var(--color-charcoal)', marginBottom: '12px', lineHeight: '1.5' }}>
-                      {receiptResult.extraction.summary}
-                    </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px' }}>
-                      {receiptResult.extraction.extractedAmount && (
-                        <div>
-                          <span style={{ color: 'var(--color-muted)' }}>Extracted: </span>
-                          <strong>{formatCurrency(receiptResult.extraction.extractedAmount)}</strong>
-                          <span style={{ marginLeft: '6px', color: receiptResult.extraction.extractedAmount === receiptResult.expectedAmount ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                            {receiptResult.extraction.extractedAmount === receiptResult.expectedAmount ? '✓' : '⚠'}
-                          </span>
-                        </div>
-                      )}
-                      {receiptResult.extraction.extractedPayer && (
-                        <div><span style={{ color: 'var(--color-muted)' }}>Payer: </span><strong>{receiptResult.extraction.extractedPayer}</strong></div>
-                      )}
-                      {receiptResult.extraction.extractedRef && (
-                        <div><span style={{ color: 'var(--color-muted)' }}>Ref: </span><strong>{receiptResult.extraction.extractedRef}</strong></div>
-                      )}
-                      {receiptResult.extraction.extractedDate && (
-                        <div><span style={{ color: 'var(--color-muted)' }}>Date: </span><strong>{receiptResult.extraction.extractedDate}</strong></div>
-                      )}
-                    </div>
-                    {receiptResult.extraction.flags.length > 0 && (
-                      <div style={{ marginTop: '10px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        {receiptResult.extraction.flags.map((f) => (
-                          <span key={f} className="badge badge-amber">{f.replace(/_/g, ' ')}</span>
-                        ))}
-                      </div>
-                    )}
-                    <p style={{ marginTop: '10px', fontSize: '12px', color: 'var(--color-muted)', fontStyle: 'italic' }}>
-                      AI-assisted extraction — admin must confirm before payment is recorded.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
 
