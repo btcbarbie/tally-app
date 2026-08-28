@@ -82,14 +82,17 @@ export default async function HomePage() {
               marginBottom: '16px',
             }}
           >
-            Group contributions, without the
+            Plan money together.
             {' '}
-            <span style={{ color: 'var(--color-forest)' }}>spreadsheet and awkward reminders</span>
+            <span style={{ color: 'var(--color-forest)' }}>Reach your goal together.</span>
           </h1>
+          <p style={{ color: 'var(--color-muted)', fontSize: '17px', lineHeight: '1.6', marginBottom: '16px' }}>
+            Tally helps groups manage shared financial goals — from weddings and group trips
+            to church projects and community initiatives.
+          </p>
           <p style={{ color: 'var(--color-muted)', fontSize: '17px', lineHeight: '1.6', marginBottom: '28px' }}>
-            Tally is a shared money tracker for weddings, trips, retreats, and projects.
-            Set a target, share one link, and let AI track who&apos;s paid, verify receipts,
-            and forecast whether you&apos;ll hit your goal.
+            Set a target, invite contributors, track commitments and payments, reconcile
+            receipts, and see whether your group is on track — all in one place.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
             <Link href="/goals/create" className="btn btn-primary btn-lg" style={{ gap: '8px' }}>
