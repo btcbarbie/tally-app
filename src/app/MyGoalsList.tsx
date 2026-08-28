@@ -3,12 +3,20 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import GoalCard from './GoalCard'
-import { Plus, Target } from 'lucide-react'
+import { Plus, Target, Sparkles } from 'lucide-react'
 import { buildGoalFinancialState } from '@/lib/finance'
 
 // Bump this if the demo-cloning shape ever changes, to force a fresh clone
 // for browsers that already bootstrapped under an older scheme.
 const DEMO_BOOTSTRAP_KEY = 'tally_demo_bootstrapped_v3'
+
+// IDs of the two demo goals cloned for this browser, so their cards can be
+// clearly labelled as interactive samples rather than groups the visitor made.
+const DEMO_IDS_KEY = 'tally_demo_goal_ids'
+
+// Known titles of the seeded demo goals — a fallback so browsers that
+// bootstrapped before DEMO_IDS_KEY existed still get the "Sample" label.
+const DEMO_TITLES = ["Tolu's Wedding Gift", 'Church Youth Retreat']
 
 export interface GoalListItem {
   id: string
@@ -83,6 +91,7 @@ function toGoalListItem(g: RawGoal): GoalListItem {
 // instead of everyone sharing — and being able to break — one global demo.
 export default function MyGoalsList({ goals }: { goals: GoalListItem[] }) {
   const [myGoals, setMyGoals] = useState<GoalListItem[] | null>(null)
+  const [demoIds, setDemoIds] = useState<string[]>([])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -104,6 +113,7 @@ export default function MyGoalsList({ goals }: { goals: GoalListItem[] }) {
             const data = await res.json()
             localStorage.setItem(`tally_admin_${data.adminGoalId}`, data.adminToken)
             localStorage.setItem(`tally_member_${data.memberGoalId}`, data.memberToken)
+            localStorage.setItem(DEMO_IDS_KEY, JSON.stringify([data.adminGoalId, data.memberGoalId]))
           }
         } catch (e) {
           console.error(e)
@@ -129,7 +139,21 @@ export default function MyGoalsList({ goals }: { goals: GoalListItem[] }) {
       const mine = source.filter(
         (g) => localStorage.getItem(`tally_admin_${g.id}`) || localStorage.getItem(`tally_member_${g.id}`)
       )
-      if (!cancelled) setMyGoals(mine)
+
+      let storedDemoIds: string[] = []
+      try {
+        storedDemoIds = JSON.parse(localStorage.getItem(DEMO_IDS_KEY) || '[]')
+      } catch {
+        storedDemoIds = []
+      }
+      const resolvedDemoIds = mine
+        .filter((g) => storedDemoIds.includes(g.id) || DEMO_TITLES.includes(g.title))
+        .map((g) => g.id)
+
+      if (!cancelled) {
+        setDemoIds(resolvedDemoIds)
+        setMyGoals(mine)
+      }
     })()
 
     return () => {
@@ -178,30 +202,59 @@ export default function MyGoalsList({ goals }: { goals: GoalListItem[] }) {
     )
   }
 
+  const hasSamples = myGoals.some((g) => demoIds.includes(g.id))
+
   return (
-    <div
-      className="goals-grid"
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-        gap: '20px',
-      }}
-    >
-      {myGoals.map((goal) => (
-        <GoalCard
-          key={goal.id}
-          goal={{
-            id: goal.id,
-            title: goal.title,
-            description: goal.description,
-            targetAmount: goal.targetAmount,
-            deadline: goal.deadline,
-            status: goal.status,
-            shareToken: goal.shareToken,
+    <>
+      {hasSamples && (
+        <div
+          style={{
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'flex-start',
+            background: 'var(--color-forest-subtle)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '14px 16px',
+            marginBottom: '20px',
+            fontSize: '13px',
+            lineHeight: '1.55',
+            color: 'var(--color-charcoal-mid)',
           }}
-          financialState={goal.financialState}
-        />
-      ))}
-    </div>
+        >
+          <Sparkles size={16} color="var(--color-forest)" style={{ flexShrink: 0, marginTop: '1px' }} />
+          <span>
+            <strong>These are sample groups</strong> — pre-filled with example members and payments
+            so you can explore how Tally works. Poke around freely, then create your own goal when
+            you&apos;re ready.
+          </span>
+        </div>
+      )}
+      <div
+        className="goals-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gap: '20px',
+        }}
+      >
+        {myGoals.map((goal) => (
+          <GoalCard
+            key={goal.id}
+            goal={{
+              id: goal.id,
+              title: goal.title,
+              description: goal.description,
+              targetAmount: goal.targetAmount,
+              deadline: goal.deadline,
+              status: goal.status,
+              shareToken: goal.shareToken,
+            }}
+            financialState={goal.financialState}
+            isSample={demoIds.includes(goal.id)}
+          />
+        ))}
+      </div>
+    </>
   )
 }

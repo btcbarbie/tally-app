@@ -52,7 +52,7 @@ export default async function HomePage() {
 
       <div className="container" style={{ padding: '40px 24px' }}>
         {/* Hero */}
-        <div style={{ marginBottom: '40px' }}>
+        <div style={{ marginBottom: '48px', maxWidth: '640px' }}>
           <div
             style={{
               display: 'inline-flex',
@@ -74,20 +74,82 @@ export default async function HomePage() {
           </div>
           <h1
             style={{
-              fontSize: 'clamp(28px, 4vw, 40px)',
+              fontSize: 'clamp(30px, 5vw, 46px)',
               fontWeight: '900',
               color: 'var(--color-charcoal)',
-              letterSpacing: '-1px',
-              lineHeight: '1.15',
-              marginBottom: '10px',
+              letterSpacing: '-1.5px',
+              lineHeight: '1.1',
+              marginBottom: '16px',
             }}
           >
-            My Shared Goals
+            Group contributions, without the
+            {' '}
+            <span style={{ color: 'var(--color-forest)' }}>spreadsheet and awkward reminders</span>
           </h1>
-          <p style={{ color: 'var(--color-muted)', fontSize: '16px', maxWidth: '480px' }}>
-            Plan, budget, and achieve shared financial goals — together.
+          <p style={{ color: 'var(--color-muted)', fontSize: '17px', lineHeight: '1.6', marginBottom: '28px' }}>
+            Tally is a shared money tracker for weddings, trips, retreats, and projects.
+            Set a target, share one link, and let AI track who&apos;s paid, verify receipts,
+            and forecast whether you&apos;ll hit your goal.
           </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+            <Link href="/goals/create" className="btn btn-primary btn-lg" style={{ gap: '8px' }}>
+              <Plus size={18} />
+              Create a goal
+            </Link>
+            <a href="#how-it-works" className="btn btn-secondary btn-lg">
+              See how it works
+            </a>
+          </div>
         </div>
+
+        {/* How it works */}
+        <div id="how-it-works" style={{ marginBottom: '48px', scrollMarginTop: '80px' }}>
+          <h2 style={{ fontSize: '13px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--color-muted)', marginBottom: '20px' }}>
+            How Tally works
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            {[
+              { n: '1', t: 'Create a goal', d: 'Set your target amount, deadline, and how much each person contributes.' },
+              { n: '2', t: 'Share one link', d: 'Members join in seconds — no app to install, no account to create.' },
+              { n: '3', t: 'Let AI do the chasing', d: 'Automatic payment tracking, receipt verification, smart reminders, and a live forecast.' },
+            ].map((s) => (
+              <div key={s.n} className="card" style={{ padding: '20px' }}>
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: 'var(--color-forest-subtle)',
+                    color: 'var(--color-forest)',
+                    fontWeight: '800',
+                    fontSize: '15px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '12px',
+                  }}
+                >
+                  {s.n}
+                </div>
+                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-charcoal)', marginBottom: '6px' }}>{s.t}</h3>
+                <p style={{ fontSize: '13px', color: 'var(--color-muted)', lineHeight: '1.55' }}>{s.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Your groups */}
+        <h2
+          style={{
+            fontSize: 'clamp(22px, 3vw, 28px)',
+            fontWeight: '900',
+            color: 'var(--color-charcoal)',
+            letterSpacing: '-0.8px',
+            marginBottom: '16px',
+          }}
+        >
+          Your groups
+        </h2>
 
         {/* Goal Grid — filtered client-side to just the goals this browser has a token for */}
         <MyGoalsList
