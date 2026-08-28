@@ -80,6 +80,11 @@ body {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
+  /* Cards are used all over as grid/flex items (stat grids, goal grids).
+     Grid/flex items default to min-width: auto, which lets unshrinkable
+     content force the track wider than its container on narrow screens —
+     silently defeating text-overflow: ellipsis and causing overflow. */
+  min-width: 0;
 }
 
 .card:hover {
@@ -606,9 +611,13 @@ body {
   .container { padding: 0 14px; }
   .container-sm { padding: 0 14px; }
 
-  /* Nav */
+  /* Nav — allow the row to wrap onto multiple lines when the brand plus
+     action buttons don't fit; the base rule's fixed height would otherwise
+     clip wrapped rows, letting them visually spill into the content below. */
   .nav-inner {
     flex-wrap: wrap;
+    height: auto;
+    min-height: 60px;
     gap: 8px;
     padding: 10px 14px;
   }
